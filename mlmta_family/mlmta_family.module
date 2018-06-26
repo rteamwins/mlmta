@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function mlmta_family_menu(){
+  $items['admin/family_modal/%ctools_js/%'] = array(
+    'page callback' => 'family_modal_show',
+    'page arguments' => array(2, 3),
+    'access arguments' => array('administer line items'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  return $items;
+}
+
+/**
+ * Show the content in a modal
+ *
+ * @param $ajax
+ *    Flag for JavaScript enabled browser
+ * @param $id
+ *    Id of the family (which is in fact the node ID of the family buncle) 
+ */
+
+function family_modal_show($ajax, $id){
+    $n = family_load($id);
+    $title = 'Family tag: '.$n->title;
+    $v = views_embed_view('family_modal','page', $id);
+    if ($ajax) {
+      //watchdog('checking ajax', 'is here');
+      //ctools_include('ajax');
+      ctools_include('modal');
+      if (empty($v)) {
+        return 'Error';
+      }
+      return ctools_modal_render($title,$v);
+    } else {
+    watchdog('checking ajax', 'is NOT here');
+      return $v; 
+    }
+}

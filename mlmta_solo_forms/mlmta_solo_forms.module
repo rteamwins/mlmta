@@ -1,0 +1,401 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+
+function mlmta_solo_forms_menu(){
+  $items = array();
+  $items['solo-registration/new'] = array(
+    'title' => t('Piano solo registration form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_piano_solo_form'),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+    'file' => 'mlmta_solo.inc',
+  );
+    
+  $items['solo-form/%pursuit/edit'] = array(
+    'title' => 'Piano solo form',
+    'page callback' => 'mlmta_solo_forms_edit_router',
+    'page arguments' => array(1),
+    'access callback' => 'mlmta_solo_forms_edit_access_check',
+    'access arguments' => array(1),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['solo-form/%pursuit/view'] = array(
+    'title' => 'Piano solo registration',
+    'page callback' => 'mlmta_solo_forms_page',
+    'page arguments' => array(1),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/solo-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'Piano solo registration',
+    'page callback' => 'mlmta_solo_forms_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/config/tenuto-registrations/manage/solo-settings'] = array(
+    'title' => 'Piano solo general settings',
+    'description' => 'General settings for the solo registration form.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_solo_forms_configuration_form'),
+    'type' => MENU_NORMAL_ITEM,
+   );
+
+  return $items;
+}
+
+
+/**
+ * Checks that user is able to edit paid pursuit
+ */
+function mlmta_solo_forms_edit_access_check($pursuit) {
+  if (!user_is_logged_in()) {
+    return FALSE;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if ($pursuit_wrapper->pursuit_order_paid->value() != 1) {
+    return TRUE;
+  }
+  return user_access('edit paid pursuits');
+}
+
+
+/**
+ * A router function for the edit form
+ */
+function mlmta_solo_forms_edit_router($pursuit) {
+  switch ($pursuit->type) {
+    case 'piano_solo':
+      $form_id = 'mlmta_piano_solo_form';
+      module_load_include('inc', 'mlmta_solo_forms', 'mlmta_solo');
+      break;
+  }
+  return drupal_get_form($form_id, $pursuit);
+}
+
+
+/**
+ * Implements hook_pursuit_calculate_trimmed_duration_alter().
+ */
+function mlmta_solo_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
+  if ($pursuit->type == 'piano_solo') {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    switch ($pursuit_wrapper->field_piano_solo_level->value()) {
+      case 'Elementary':
+        $max_duration = 180;
+        break;
+      case 'Lower intermediate':
+        $max_duration = 360;
+        break;
+      case 'Upper intermediate':
+        $max_duration = 360;
+        break;
+      case 'Advanced':
+        $max_duration = 600;
+        break;
+      default:
+        $max_duration = 12000;
+        break;
+    } 
+  }
+}
+
+
+////////////  Display functions //////////////////
+
+
+/**
+ * Creates a render array of the pursuit with all relations
+ */
+function mlmta_solo_forms_page($pursuit) {
+  list(, , $bundle) = entity_extract_ids('pursuit', $pursuit);
+  $bundle_label = entity_get_info('pursuit')['bundles'][$bundle]['label'];
+  drupal_set_title($bundle_label);
+  return mlmta_solo_forms_multiple_page(array($pursuit));
+}
+
+/**
+ * Builds and returns a renderable array for multiple pursuit. Built completely with students, teachers, accompanists, families and pieces
+ */
+function mlmta_solo_forms_multiple_page($pursuits) {
+  $page = entity_view('pursuit', $pursuits, 'complete');
+  return $page;
+}
+
+// MOVED TO MLMTA_BASE
+///**
+// * Provides new variables to piano_solo pursuit template 
+// */
+//function mlmta_solo_forms_preprocess_entity(&$variables) {
+//  if ($variables['entity_type'] == 'pursuit'&& $variables['pursuit']->type == 'piano_solo') {
+//    $wrapper = entity_metadata_wrapper('pursuit', $variables['pursuit']);
+//    $variables['content']['bundle'] = array('#markup' => field_info_bundles('pursuit')[$variables['pursuit']->type]['label']);
+//    $variables['pursuit_id'] = $variables['pursuit']->pursuit_id;
+//    $base_url = 'mlmta-form/'.$wrapper->getIdentifier();
+//    $variables['content']['edit_link']['#markup'] = l(
+//                                            'Edit',
+//                                            $base_url.'/edit',
+//                                            array(
+//                                              'query' => array(
+//                                                'destination' => $base_url.'/view',
+//                                              ),
+//                                            )
+//    );
+//    if ($wrapper->pursuit_order_reference->status->value() != 'cart' && !mlmta_solo_forms_edit_access_check($wrapper->value())) {
+//      $variables['content']['edit_link']['#markup'] = 'Paid registrations cannot be edited. If you need changes please contact the festival chair.';
+//    } 
+//    $variables['in_cart'] = $wrapper->pursuit_order_reference->status->value() == 'cart' ? 1 : 0;
+//    $variables['content']['created']['#markup'] = date('D m/d/y - g:i a', $variables['pursuit']->created);
+//  }
+//}
+
+
+/**
+ * Pursuit modal for admin callback
+ */
+
+/**
+ * Show the content in a modal
+ *
+ * @param $ajax
+ *    Flag for JavaScript enabled browser
+ * @param $pursuit
+ *    The pursuit to view
+ */
+
+function mlmta_solo_forms_modal_show($ajax, $pursuit){
+    if ($pursuit->type == 'break') {
+      if ($ajax) {
+        ctools_include('modal');
+        return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
+      } else{
+       return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
+      }
+    }
+    $page = mlmta_solo_forms_page($pursuit);
+    if ($ajax) {
+      //watchdog('checking ajax', 'is here');
+      //ctools_include('ajax');
+      ctools_include('modal');
+      if (empty($page)) {
+        return 'Error';
+      }
+      return ctools_modal_render('',$page);
+    } else {
+    watchdog('checking ajax', 'is NOT here');
+      return $page; 
+    }
+}
+
+
+
+
+/**
+ * Configuration form for mlmta solo
+ */
+function mlmta_solo_forms_configuration_form($form, &$form_state) {
+  // Provide a default date in the format YYYY-MM-DD HH:MM:SS.
+  $date = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $cutoff = format_date(variable_get('tenuto_solo_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $format = "m-d-Y h:i A";
+  
+  $events = event_load_all();
+  if (!empty($events)) {
+
+    $options = array();
+    foreach ($events as $id => $event) {
+      $options[$id] = $events[$id]->title; 
+    }
+    
+    $form['tenuto_solo_event'] = array(
+      '#type' => 'select',
+      '#title' => 'Event',
+      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the solo forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+      '#required' => TRUE,
+      '#options' => $options,
+      '#default_value' => variable_get('tenuto_solo_event',NULL),
+    );
+  }
+  $form['deadline_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Deadline'),
+  );
+  $form['deadline_fieldset']['tenuto_solo_form_deadline'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select a registration deadline for solo festival'),
+     '#description' => 'The form will stop accepting registrations after this deadline.',
+     '#default_value' => $date, 
+     '#date_format' => $format,
+  );
+  
+  $form['cutoff_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Cutoff'),
+  );
+  $form['cutoff_fieldset']['tenuto_solo_form_cutoff'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select an age cutoff date for solo festival'),
+     '#description' => 'This is the date used to calculate the age of the student and the length of study with current teacher. Often this is either the same as the deadline, or the date of the event.',
+     '#default_value' => $cutoff, 
+     '#date_format' => $format,
+  );
+  
+  $form['email_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Confirmation Email'),
+  );
+  
+  $form['email_fieldset']['tenuto_solo_email_confirmation_text'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Confirmation email text for solo festival'),
+    '#default_value' => variable_get('tenuto_solo_email_confirmation_text', ''),
+    '#rows' => 9,
+  );
+  
+  $form['scheduling_email_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Scheduling Email'),
+  );
+  $form['scheduling_email_fieldset']['tenuto_solo_email_scheduling_text'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Scheduling email text for solo festival'),
+    '#default_value' => variable_get('tenuto_solo_email_scheduling_text', ''),
+    '#rows' => 9,
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+    '#weight'=> 99,
+  );
+  return $form;
+}
+/**
+ * Submit handler
+ */
+function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
+  $uts = strtotime($form_state['values']['tenuto_solo_form_deadline']);
+  $cutoff = strtotime($form_state['values']['tenuto_solo_form_cutoff']);
+  variable_set('tenuto_solo_form_deadline', $uts);
+  variable_set('tenuto_solo_form_cutoff', $cutoff);
+  variable_set('tenuto_solo_email_confirmation_text', $form_state['values']['tenuto_solo_email_confirmation_text']['value']);
+  variable_set('tenuto_solo_email_scheduling_text', $form_state['values']['tenuto_solo_email_scheduling_text']['value']);
+  if (isset($form_state['values']['tenuto_solo_event'])) {
+    variable_set('tenuto_solo_event', $form_state['values']['tenuto_solo_event']);
+    $event = event_load($form_state['values']['tenuto_solo_event']);
+    $event->cutoff = $cutoff;
+    $event->deadline = $uts;
+    event_save($event);   
+  }
+  drupal_set_message(t('The settings have been saved.'));
+}
+
+/**
+ * Implements hook_token_info().
+ *
+ * Creates token replacements for the solo site
+ */
+function mlmta_solo_forms_token_info() {
+  $tokens = array();
+  $tokens['tokens']['site']['tenuto-solo-event'] = array(
+    'name' => t('Tenuto system event linked to the piano solo forms'),
+    'description' => t('The event ID linked to the piano solo forms.'),
+  );
+  $tokens['tokens']['site']['tenuto-solo-email-confirmation-text'] = array(
+    'name' => t('Tenuto system email confirmation text for the piano solo festival'),
+    'description' => t('Text to be inserted in the email confirmation above the order summary.'),
+  );
+  $tokens['tokens']['site']['tenuto-solo-email-scheduling-text'] = array(
+    'name' => t('Tenuto system email scheduling text for the piano solo festival'),
+    'description' => t('Text to be inserted in the scheduling email above the order summary.'),
+  );
+  $tokens['tokens']['site']['tenuto-solo-form-deadline'] = array(
+    'name' => t('Tenuto system form deadline for the piano solo festival'),
+    'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
+  );
+  return $tokens;
+}
+
+/**
+ * Implements hook_tokens()
+ * Provides value for token
+ */
+function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'site') {
+    $sanitize = !empty($options['sanitize']);
+    // Loop through the available tokens.
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'tenuto-solo-email-confirmation-text':
+          $value = variable_get('tenuto_solo_email_confirmation_text','');
+          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-solo-email-scheduling-text':
+          $value = variable_get('tenuto_solo_email_scheduling_text','');
+          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-solo-form-deadline':
+          $value = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'm/d/Y h:i A');
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-solo-event':
+          $value = variable_get('tenuto_solo_event', 0);
+          $replacements[$original] = $value;
+          break;
+      }
+    }
+    return $replacements;
+  }
+}
+
+/**
+ * Implements hook_message_presave().
+ *
+ * Embeds a view in the notification email for solo registrations
+ */
+
+function mlmta_solo_forms_message_presave($message) {
+  if (!empty($message->mid) || $message->type != 'commerce_order_order_confirmation' ) {
+    return;
+  }
+
+  $message->arguments['!solo-order-summary'] = array(
+    'callback' => 'mlmta_solo_forms_message_order_summary',
+    'pass message' => TRUE,
+  );
+}
+
+/**
+ * Message solo callback; Show order summary.
+ *
+ * @param Message $message
+ *   The Message entity.
+ *
+ * @return string
+ *   The output of the View.
+ */
+function mlmta_solo_forms_message_order_summary(Message $message) {
+  $wrapper = entity_metadata_wrapper('message', $message);
+  $view = views_get_view('shopping_cart_complete_summary'); 
+  $view->set_display('solo');
+  $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
+  $view->hide_admin_links = TRUE;
+
+  // Disable SQL query rewrite so this renders properly for token.
+  // @link https://www.drupal.org/node/1895418
+  // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
+  $view->display['solo']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
+
+  return $view->preview();
+}

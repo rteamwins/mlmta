@@ -1,0 +1,7 @@
+name = MLMTA personnel and teacher conflict
+description = Checks for conflicts between personnel and the teachers in timeblocks
+package = MLMTA
+dependencies[] = timeblock
+dependencies[] = pursuit
+dependencies[] = personnel
+core = 7.x

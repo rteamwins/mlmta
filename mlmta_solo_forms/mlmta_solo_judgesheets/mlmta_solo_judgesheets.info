@@ -1,0 +1,4 @@
+name = MLMTA Solo Judge Sheets
+description = Generates a PDF with the judge sheets. Requires FPDI and TCPDF libraries in sites/all/libraries
+core = 7.x
+package = MLMTA

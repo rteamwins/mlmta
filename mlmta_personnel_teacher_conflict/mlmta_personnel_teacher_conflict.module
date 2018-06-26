@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * Implements hook_timeblock_pursuit_dropped().
+ * This hook is invoked before adding pursuits to a time block, after dragging and dropping them into the timeblock
+ * @param $timeblock
+ *    The timeblock onto which the pursuit is being dropped
+ * @param $pursuit
+ *    The pursuit being dropped
+ */
+function mlmta_personnel_teacher_conflict_timeblock_pursuit_dropped($timeblock, $pursuit) {
+  $timeblock_wrapper = entity_metadata_wrapper('timeblock', $timeblock);
+  // Iterate through all personnel in this timeblock and call the checker
+  foreach ($timeblock_wrapper->timeblock_personnel_reference->getIterator() as $personnel) {
+    mlmta_personnel_teacher_conflict_checker($personnel->getIdentifier(), $pursuit, $timeblock);
+  }
+}
+
+/**
+ * Implements hook_personnel_update().
+ * This hook is used to trigger a conflict check between teachers in a timeblock and personnel when updating a personnel,
+ * to warn user when they move a pursuit into a timeblock
+ */
+function mlmta_personnel_teacher_conflict_personnel_update($personnel) {
+  $orig = empty($personnel->original->personnel_timeblock_reference['und']) ? array('und' => array()) : $personnel->original->personnel_timeblock_reference['und'];
+  if (empty($personnel->personnel_timeblock_reference['und']) || $personnel->personnel_timeblock_reference == $personnel->original->personnel_timeblock_reference ) {
+    return;
+  }
+  
+  $new = array();
+  foreach ($personnel->personnel_timeblock_reference['und'] as $item) {
+    $new[] = $item['target_id'];
+  }
+  
+  $orig = array();
+  if (!empty($personnel->original->personnel_timeblock_reference['und'])) {
+    foreach ($personnel->original->personnel_timeblock_reference['und'] as $item) {
+      $orig[] = $item['target_id'];
+    }
+  }
+  $difference = array_diff($new, $orig);
+  if (empty($difference)) {
+    return;
+  }
+  foreach ($difference as $timeblock_id) {
+    // get all pursuits in this timeblock
+    $q = new EntityFieldQuery();
+    $q->entityCondition('entity_type', 'pursuit')
+      ->fieldCondition('pursuit_timeblock_reference', 'target_id', $timeblock_id);
+    $result = $q->execute();
+    if (empty($result)) {
+      return;
+    }
+    $pursuit_ids = array_keys($result['pursuit']);
+    foreach ($pursuit_ids as $pursuit_id) {
+      mlmta_personnel_teacher_conflict_checker($personnel, $pursuit_id, $timeblock_id);
+    }   
+  }
+}
+
+/**
+ * Implements hook_personnel_insert().
+ * This hook is used to trigger a conflict check between teachers in a timeblock and personnel when saving a new personnel,
+ * to warn user when they move a pursuit into a timeblock
+ */
+function mlmta_personnel_teacher_conflict_personnel_insert($personnel) {
+  if (empty($personnel->personnel_timeblock_reference['und'])) {
+    return;
+  }
+  foreach ($personnel->personnel_timeblock_reference['und'] as $target) {
+    $timeblock_id = $target['target_id'];
+    // get all pursuits in this timeblock
+    $q = new EntityFieldQuery();
+    $q->entityCondition('entity_type', 'pursuit')
+      ->fieldCondition('pursuit_timeblock_reference', 'target_id', $timeblock_id);
+    $result = $q->execute();
+    if (empty($result)) {
+      return;
+    }
+    $pursuit_ids = array_keys($result['pursuit']);
+    foreach ($pursuit_ids as $pursuit_id) {
+      mlmta_personnel_teacher_conflict_checker($personnel,$pursuit_id, $timeblock_id);
+    }   
+  }
+}
+
+/**
+ * Checks if there is a conflict between a pursuit's teacher in the personnel in a timeblock (judge). Creates a warning
+ * Potentially this should return TRUE for conflicts and let other functions handle the warning?
+ * 
+ * @param $personnel
+ *    The personnel we'll need to check
+ * @param $pursuit
+ *    A pursuit object to check the teacher against the personnel
+ * @param $timeblock
+ *    The timeblock in question where the pursuit is
+ */
+function mlmta_personnel_teacher_conflict_checker($personnel, $pursuit, $timeblock) {
+  $personnel_wrapper = entity_metadata_wrapper('personnel', $personnel);
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  $timeblock_wrapper = entity_metadata_wrapper('timeblock', $timeblock);
+  // Iterate through all teachers referenced by pursuit  
+  foreach ($pursuit_wrapper->pursuit_teacher_reference->getIterator() as $teacher) {
+    if ($teacher->teacher_last_name->value() == $personnel_wrapper->personnel_last_name->value() || $teacher->teacher_email->value() == $personnel_wrapper->personnel_email->value()) {
+      drupal_set_message('Potential judge conflict detected for '.$pursuit_wrapper->label() . ' in time block '.l($timeblock_wrapper->label(),'/admin/pursuits/in-time-block/'.$timeblock_wrapper->getIdentifier()), 'warning');
+    } 
+  }
+}

@@ -1,0 +1,6 @@
+name = MLMTA piano solo forms
+description = All functions related to forms for piano solo festival
+core = 7.x
+package = MLMTA
+
+dependencies[] = pursuit

@@ -1,0 +1,514 @@
+<?php
+
+/**
+ * @file Contains common functions for the 3 MLMTA festivals
+ */
+
+
+// Include the main TCPDF library (search for installation path).
+require_once('sites/all/libraries/tcpdf/tcpdf.php');
+// Extend the TCPDF class to create custom Header and Footer
+class MYPDF extends TCPDF {
+    public $room = 'Undefined';
+    public $timeblock = 'Undefined';
+    public $event = 'Undefined';
+
+      public function Header() {
+        // Set font
+        $this->SetFont('helvetica', 'B', 15);
+        $this->SetY(10);
+        // Title
+        $this->Cell(0, 15, $this->event, 0, false, 'C', 0, '', 0, false, 'M', 'M');
+    }
+    // Page footer
+    public function Footer() {
+        // Position at 15 mm from bottom
+        $this->SetY(-15);
+        // Set font
+        $this->SetFont('helvetica', '', 9);
+        // Page number
+        $this->Cell(0, 10, 'Room: ' . $this->room .'. Time block: '.$this->timeblock.'. Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+    }
+}
+
+/**
+ * Implements hook_menu().
+ *
+ * Defines menu callbacks common to all systems
+ */
+function mlmta_base_menu() {
+  $items['mlmta-form/%pursuit/view'] = array(
+    'title' => 'Registration',
+    'page callback' => 'mlmta_base_view_page',
+    'page arguments' => array(1),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['mlmta-form/%pursuit/edit'] = array(
+    'title' => 'Registration',
+    'page callback' => 'mlmta_base_edit_page',
+    'page arguments' => array(1),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+
+  return $items;
+}
+
+/**
+ * Router function for editing pursuits (registrations)
+ * This is used since the view functions are slightly different, especially for the theory festival (which uses a view individual-registration
+ * @param Pursuit $pursuit
+ *    A pursuit object
+ */
+function mlmta_base_edit_page($pursuit) {
+  switch ($pursuit->type) {
+    case 'piano_duet_performance':
+      $form_id = 'mlmta_piano_duet_form';
+      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_duet');
+      break;
+    case 'piano_duo_performance':
+      $form_id = 'mlmta_piano_duo_form';
+      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_duo');
+      break;
+    case 'piano_concerto_ensemble':
+      $form_id = 'mlmta_concerto_ensemble_form';
+      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_concerto_ensemble');
+      break;
+    case 'piano_trio_performance':
+      $form_id = 'mlmta_piano_trio_form';
+      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_trio');
+      break;
+    case 'vocal_solo_performance':
+      $form_id = 'mlmta_vocal_solo_form';
+      module_load_include('inc','mlmta_ensemble_forms','mlmta_vocal_solo');
+      break;
+    case 'vocal_ensemble_performance':
+      $form_id = 'mlmta_vocal_ensemble_form';
+      module_load_include('inc','mlmta_ensemble_forms','mlmta_vocal_ensemble');
+      break;
+    case 'piano_solo':
+      $form_id = 'mlmta_piano_solo_form';
+      module_load_include('inc', 'mlmta_solo_forms', 'mlmta_solo');
+      break;
+    case 'piano_theory':
+    case 'voice_theory':
+    case 'written_theory':
+    case 'aural_theory':
+      $form_id = 'mlmta_theory_form';
+      module_load_include('inc', 'mlmta_theory_forms', 'mlmta_theory');
+      break;
+  }
+  if (!mlmta_base_edit_access_check($pursuit)) {
+    return MENU_ACCESS_DENIED;
+  }
+  return drupal_get_form($form_id, $pursuit);
+}
+
+/**
+ * Router function for viewing pursuits (registrations)
+ * This is used since the edit functions are slightly different
+ * @param Pursuit $pursuit
+ *    A pursuit object
+ */
+function mlmta_base_view_page($pursuit) {
+  switch ($pursuit->type) {
+    case 'piano_solo':
+      return mlmta_solo_forms_page($pursuit);
+      break;
+    case 'vocal_ensemble_performance':
+    case 'vocal_solo_performance':
+    case 'piano_trio_performance':
+    case 'piano_concerto_ensemble':
+    case 'piano_duo_performance':
+    case 'piano_duet_performance':
+      return mlmta_ensemble_forms_page($pursuit);
+      break;
+    case 'aural_theory':
+    case 'written_theory':
+    case 'voice_theory':
+    case 'piano_theory':
+      return mlmta_theory_forms_modal_show(NULL, $pursuit);
+      break;
+  }
+
+}
+
+// These helper funtions are used by all forms in the MLMTA systems
+
+
+
+/**
+ * Helper to build list of students in system
+ * @return array An associative of student names array keyed by student id
+ */
+function _mlmta_student_build_list($student_type) {
+  $student_array = array();
+  global $user;
+  $current_user = user_load($user->uid);
+  $current_teacher_id = !empty($current_user->field_user_teacher_reference['und'][0]['target_id'])? $current_user->field_user_teacher_reference['und'][0]['target_id'] : 0;
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'student')
+        ->entityCondition('bundle', $student_type)
+        ->fieldOrderBy('student_last_name','value');
+  if (!user_access('edit any pursuit entities') && $current_teacher_id != 0) {   
+    $query->fieldCondition('student_teacher_references', 'target_id', $current_teacher_id);
+  }
+  $result = $query->execute();
+  if ($result) {
+    $student_ids = array_keys($result['student']);
+    $students = student_load_multiple($student_ids);
+    foreach ($students as $student) {
+      $student_array[$student->student_id] = $student->name;
+    }
+  }
+  return $student_array;
+}
+
+/**
+ * Helper to build list of teachers in system
+ * @return array An associative of teacher names array keyed by student id
+ */
+function _mlmta_teacher_build_list($teacher_type) {
+  global $user;
+  $teacher_array = array();
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'teacher')
+        ->entityCondition('bundle', $teacher_type)
+        ->fieldOrderBy('teacher_last_name','value');
+  //if (!(user_has_role(4) || user_has_role(3))) {   // role ID 4 is the manager's rid, rid 3 is admin
+  //  $query->propertyCondition('uid', $user->uid);
+  //}
+  $result = $query->execute();
+  if ($result) {
+    $teacher_ids = array_keys($result['teacher']);
+    $teachers = teacher_load_multiple($teacher_ids);
+    foreach ($teachers as $teacher) {
+      $teacher_array[$teacher->teacher_id] = $teacher->name . ' (code '.$teacher->teacher_code['und'][0]['value'] .')';
+    }
+  }
+  return $teacher_array;
+}
+
+
+/**
+ * Helper to build list of families to replace in the field displayed in the form. Shows all families for managers and admin
+ * @return An associative array to replace the one in $form_temp['field_student_family']['und']['#options']
+ */
+function _mlmta_family_build_list() {
+  global $user;
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'family')
+        ->propertyOrderBy('title');
+  if (!user_access('edit any family entities')) {  
+    $query->propertyCondition('uid', $user->uid);
+  }
+  $result = $query->execute();
+  $family_array = array ('_none' => '- None -');
+  if ($result) {
+    $family_ids = array_keys($result['family']);
+    $families = family_load_multiple($family_ids);
+    foreach ($families as $family) {
+      $family_array[$family->family_id] = $family->title;
+    }
+  }
+  return $family_array;
+}
+
+/**
+ * Ajax callback function to prepopulate student 1 information
+ */
+function _mlmta_student_1_prepopulate($form, $form_state) {
+  return $form['student_1']['student_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate student 2 information
+ */
+function _mlmta_student_2_prepopulate($form, $form_state) {
+  return $form['student_2']['student_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate student 2 information
+ */
+function _mlmta_accompanist_prepopulate($form, $form_state) {
+  return $form['accompanist']['student_fieldset'];
+}
+/**
+ * Ajax callback function to prepopulate student 3 information
+ */
+function _mlmta_student_3_prepopulate($form, $form_state) {
+  return $form['student_3']['student_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate generic student information (currently used only by the vocal ensemble)
+ */
+function _mlmta_student_generic_prepopulate($form, $form_state) {
+  $current_step = $form_state['step'];
+  $delta =  $form_state['step_information'][$current_step]['delta'];
+  return $form['student'][$delta]['student_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate teacher 1 information
+ */
+function _mlmta_teacher_1_prepopulate($form, $form_state) {
+  return $form['student_1']['teacher_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate teacher 2 information
+ */
+function _mlmta_teacher_2_prepopulate($form, $form_state) {
+  return $form['student_2']['teacher_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate teacher 2 information
+ */
+function _mlmta_accompanist_teacher_prepopulate($form, $form_state) {
+  return $form['accompanist']['teacher_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate teacher 2 information
+ */
+function _mlmta_teacher_3_prepopulate($form, $form_state) {
+  return $form['student_3']['teacher_fieldset'];
+}
+
+/**
+ * Ajax callback function to prepopulate generic student information (currently used only by the vocal ensemble)
+ */
+function _mlmta_teacher_generic_prepopulate($form, $form_state) {
+  $current_step = $form_state['step'];
+  $delta =  $form_state['step_information'][$current_step]['delta'];
+  return $form['student'][$delta]['teacher_fieldset'];
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ * Creates new view for student and teacher
+ */
+function mlmta_base_entity_info_alter(&$entity_info) {
+
+  $entity_info['student']['view modes']['for_pursuit'] = array(
+    'label' => t('For pursuit'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['teacher']['view modes']['for_pursuit'] = array(
+    'label' => t('For pursuit'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['teacher']['view modes']['for_download'] = array(
+    'label' => t('For download'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['piece']['view modes']['for_download'] = array(
+    'label' => t('For download'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['piece']['view modes']['for_pursuit'] = array(
+    'label' => t('For pursuit'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['pursuit']['view modes']['complete'] = array(
+    'label' => t('Complete'),
+    'custom settings' => TRUE,
+  );
+  
+  $entity_info['pursuit']['view modes']['theory_complete'] = array(
+    'label' => t('Theory complete'),
+    'custom settings' => TRUE,
+  );
+}
+
+/**
+ * Implements template_preprocess_entity()
+ * Provides new variables to pursuit template to show 
+ */
+function mlmta_base_preprocess_entity(&$variables) {
+  if ($variables['entity_type'] == 'pursuit') {
+    $wrapper = entity_metadata_wrapper('pursuit', $variables['pursuit']);
+    $variables['content']['bundle'] = array('#markup' => scheduling_bundle_label('pursuit', $variables['pursuit']->type));
+    $variables['pursuit_id'] = $variables['pursuit']->pursuit_id;
+    $base_url = 'mlmta-form/'.$wrapper->getIdentifier();
+    $destination = str_replace('ajax/', 'nojs/', current_path());
+    $variables['content']['edit_link']['#markup'] = l(
+                                            'Edit',
+                                            $base_url.'/edit',
+                                            array(
+                                              'query' => array(
+                                                'destination' => $base_url . '/view',
+                                              ),
+                                            )
+    );
+    if ($wrapper->pursuit_order_reference->status->value() != 'cart' && !mlmta_base_edit_access_check($wrapper->value())) {
+      $variables['content']['edit_link']['#markup'] = 'Paid registrations cannot be edited. If you need changes please contact the festival chair.';
+    } 
+    $variables['in_cart'] = $wrapper->pursuit_order_reference->status->value() == 'cart' ? 1 : 0;
+    $variables['content']['created']['#markup'] = date('D m/d/y - g:i a', $variables['pursuit']->created);
+  }
+}
+
+
+/**
+ * Implements hook_permission().
+ */
+function mlmta_base_permission() {
+  $permissions = array(
+    'edit paid pursuits' => array(
+      'title' => t('Edit paid pursuits'),
+      'description' => t('Edit pursuit that have already been paid for'),
+    ),
+    'edit pursuit after deadline' => array(
+      'title' => t('Edit pursuit after the deadline'),
+      'description' => t('Allows users to edit pursuits after the deadline.'),
+    ),
+  );
+  
+  return $permissions;
+}
+
+/**
+ * Checks that user is able to edit paid pursuit
+ */
+function mlmta_base_edit_access_check($pursuit) {
+  if (!user_is_logged_in()) {
+    return FALSE;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if ($pursuit_wrapper->pursuit_order_paid->value() != 1) {
+    return TRUE;
+  }
+  return user_access('edit paid pursuits');
+}
+
+/**
+ * Implements template_preprocess_views_aggregator_results_table().
+ * 
+ * Adds special css class to pursuits with time conflicts
+ */
+function mlmta_base_preprocess_views_aggregator_results_table(&$vars) {
+  if(in_array($vars['view']->name, array('pursuits_1', 'pursuit_1_ensemble', 'pursuit_1_theory'))) { // @todo Add new pursuit view names for each of the systems
+    $rows = &$vars['rows'];
+    foreach ($rows as $delta => $row) {
+      // Add special class for conflicted pursuit
+      if (isset($vars['view']->style_plugin->rendered_fields[$delta]['pursuit_time_conflict']) && $vars['view']->style_plugin->rendered_fields[$delta]['pursuit_time_conflict']) {
+        $vars['row_classes'][$delta][] = 'conflicted-pursuit';
+      }
+    }    
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ * Adds modal libraries
+ * 
+ */
+function mlmta_base_views_pre_render(&$views) {
+  // Make sure it's the correct view
+  if (in_array($views->name, array('pursuits_1', 'pursuit_1_ensemble', 'pursuit_1_theory'))) {  // @todo  add check or other views for ensemble and theory
+    // add needed javascript
+    // drupal_add_library('system', 'drupal.ajax');
+    //watchdog('view_prerender', 'Im here');
+    //ctools_include('ajax');
+    ctools_include('modal');
+    ctools_include('ajax');
+    ctools_modal_add_js();
+    drupal_add_js(array(
+      'my-modal-style' => array(
+        'modalSize' => array(
+          'width' => '.5',
+        ),
+        'closeText' => '',
+        'animation' => 'fadeIn',
+        'closeImage' => theme('image', array('path' => ctools_image_path('close-image-small.png', 'mlmta_base_forms'), 'alt' => t('Close window'), 'title' => t('Close window'))),
+      ),
+    ), 'setting');
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ * Hides the "Already paid" field in the checkout process
+ */
+function mlmta_base_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'commerce_checkout_form_checkout':
+      $form['customer_profile_billing']['field_non_member_paid']['#states'] = array(
+        'invisible' => array(
+          ':input[name="customer_profile_billing[field_mlmta_member][und]"]' => array ('value' => 1),
+        ),
+      );
+      break;
+    case 'student_form':
+      // hide fields for normal users
+      if (!(user_has_role(3) || user_has_role(4))) {
+        unset($form['student_pursuit_reference']);
+        $form['field_student_family']['und']['#options'] = _mlmta_family_build_list();
+      }
+      if (!empty($form['#entity']->student_pursuit_reference['und'])) {
+        // disable delete button
+        $form['actions']['delete']['#disabled'] = TRUE;
+        $form['cant-delete'] = array(
+          '#markup' => t('This student is currently registered for activities in this system or is in your shopping cart, and therefore can\'t be deleted. If you wish to delete it, please delete the registration of contact the administrator'),
+          '#prefix' => '<p style="color: red;">',
+          '#suffix' => '</p>',
+          '#weight' => 90,
+        );
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_pursuit_delete().
+ * 
+ * Fetches the line item that references a pursuit being deleted and removes the reference. 
+ * This hook replaces a Rule since this line items can reference an unlimited number of pursuits (difficult to do with Rules)
+ *
+ * 
+ */
+function mlmta_base_pursuit_delete($pursuit) {
+  $q = new EntityFieldQuery();
+  $q->entityCondition('entity_type', 'commerce_line_item')
+    ->fieldCondition('field_pursuit_reference', 'target_id', $pursuit->pursuit_id);
+  $result = $q->execute();
+  if (!empty($result['commerce_line_item'])) {
+    $li_ids = array_keys($result['commerce_line_item']);
+    $lis = commerce_line_item_load_multiple($li_ids);
+    foreach ($lis as $li) {
+      $target_ids = array();
+      $ref_field_items = !empty($li->field_pursuit_reference['und'][0]) ? $li->field_pursuit_reference['und'] : array();
+      foreach ($ref_field_items as $item) {
+        if ($item['target_id'] != $pursuit->pursuit_id) {
+          $target_ids[] = $item['target_id'];
+        }
+      }
+      $li_w = entity_metadata_wrapper('commerce_line_item', $li);
+      $li_w->field_pursuit_reference = $target_ids; // This will probably throw an error for fields that only reference 1 item.
+      $li_w->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ * // THIS   ended up not being needed, as I defined the calculated age through a computed entity property
+ */
+//function mlmta_base_views_api() {
+//  return array(
+//    'api' => 3,
+//    'path' => drupal_get_path('module', 'mlmta_base') . '/views',
+//  );
+//}

@@ -1,0 +1,247 @@
+<?php
+
+
+
+/**
+ * Implements hook_menu().
+ */
+
+function mlmta_solo_room_schedule_menu() {
+  $items['admin/pdf-room-schedule-solo/%event'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_solo_room_schedule_room_form', 2),
+    'access arguments' => array('administer line items'),
+    'type' => MENU_CALLBACK,
+    'title'=>'Room schedules - piano solo.',
+  );
+  return $items;
+}
+
+
+/**
+ * Generates the room schedule pdf
+ *
+ * @param $tid  Taxonomy term ID for room
+ * @param array $variables An array of additional parameters
+ */
+function mlmta_solo_room_schedule_entry($tid ,$variables = array()) {
+  $pdf = new MYPDF('L','mm', 'LETTER');
+  $pdf->event = 'MLMTA Piano Solo';
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  $pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  // set header and footer fonts
+  $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+  $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+  
+  // set default monospaced font
+  $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+  
+  // set margins
+  $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+  $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+  $pdf->SetFooterMargin(PDF_MARGIN_FOOTER); 
+
+  mlmta_solo_room_schedule_output ($tid, $pdf, $variables);
+
+  // return $output;
+  $term = taxonomy_term_load($tid);
+  $room_name = check_plain($term->name);
+  $room_name = preg_replace("/[^\w]+/", "", $room_name);
+  $file = 'MLMTASoloRoomSchedule'.$room_name.'.pdf';
+  $out = $pdf->Output('tempo.pdf', 'I');
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment; filename="'. $file.'"');
+  echo $out;
+  flush();
+  exit();
+}
+
+/**
+ * Actually generates the PDF
+ *
+ * @param $tid
+ * @param $pdf  PDF object
+ * @param $variables An array of additional parameters
+ */
+function mlmta_solo_room_schedule_output ($tid, $pdf, $variables = array()) {
+ // Load timeblocks for this room
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'timeblock')
+        ->fieldCondition('timeblock_room', 'tid', $tid)
+        ->fieldOrderBy('timeblock_date', 'value');
+  $result = $query->execute();
+  if (!$result) {
+    return 'This room does not have any time blocks';
+  }
+  $room = taxonomy_term_load($tid);
+  $room_name = $room->name;
+
+  $timeblock_ids = array_keys($result['timeblock']);
+  foreach ($timeblock_ids as $timeblock_id) {
+    $output = '';
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'pursuit')
+          ->fieldCondition('pursuit_timeblock_reference', 'target_id', $timeblock_id)
+          ->fieldOrderBy('pursuit_date', 'value');
+    $result = $query->execute();
+    if (!$result) {
+      continue;
+    }
+    $timeblock_wrapper = entity_metadata_wrapper('timeblock', $timeblock_id);
+    $output .= '<h1>Room: ' . $room_name . '. Time block: '.$timeblock_wrapper->title->value() .'.</h1>';
+    $output .= '<p>Times: '. date('m/d/Y g:i A',$timeblock_wrapper->timeblock_date->value->value()) . ' to ' . date('g:i A',$timeblock_wrapper->timeblock_date->value2->value()).'</p>';
+    $pursuit_ids = array_keys($result['pursuit']);
+    $rows = array();
+    $header = array(
+        array('data' => 'Number', 'align' => 'center'),
+        array('data' => 'Start time', 'align' => 'center'),
+        array('data' => 'Performer', 'align' => 'center'),
+        array('data' => 'Pieces', 'align' => 'center'),
+        array('data'=>'Teacher', 'align' => 'center'),
+        array('data'=>'Level', 'align' => 'center'),
+        array('data'=>'Length', 'align' => 'center'),
+    );
+    $bg = '#FFFFFF';
+    foreach ($pursuit_ids as $pursuit_id) {
+      $row = array();
+      $w = entity_metadata_wrapper('pursuit', $pursuit_id);
+      $is_break = $w->pursuit_is_break->value();
+      $duration = theme('hms', array('value' => $w->pursuit_duration->value(), 'format'=>'m:ss'));
+      $trimmed =  theme('hms', array('value' => $w->pursuit_trimmed_duration->value(), 'format'=>'m:ss'));
+      $bg = $bg == '#FFFFFF' ? '#DDDDDD' : '#FFFFFF';
+      
+      $pieces = '';
+      if (!empty($w->pursuit_piece_reference->value())) {
+        $piece_info = array();
+        foreach ($w->pursuit_piece_reference->getIterator() as $piece) {
+          $piece_info[] = $piece->label() . '. ' .   $piece->piece_composer->label();
+        }
+        $pieces = implode('<br>', $piece_info);
+      }
+
+      if (!$is_break) {
+        if (isset($variables['anonymize']) && $variables['anonymize'] == 1) {
+          $teacher = $w->pursuit_teacher_reference[0]->teacher_code->value();
+        } else {
+          $teacher = $w->pursuit_teacher_reference[0]->label() . '<br>' .$w->pursuit_teacher_reference[0]->teacher_code->value();
+        } 
+      }
+      
+      $row[] = $is_break ? '&nbsp;' : array('data' => $w->pursuit_contestant_number->value(), 'align' => 'center');
+      $row[] = array('data' => empty($w->pursuit_date->value->value()) ? '' : date('g:i A' ,$w->pursuit_date->value->value()), 'align' => 'center');
+      $row[] = $is_break ? array('data' => 'BREAK','align' => 'center') : array('data'=>$w->title->value(), 'align' => 'center');
+      $row[] = $pieces;
+      $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center');
+      $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_solo_level->value(), 'align' => 'center');
+      $row[] = array('data' => $duration . '<br/>('.$trimmed. ')', 'align' => 'center');
+
+      $rows[] = array('data' => $row, 'nobr' => 'true', 'style' => 'background-color:'.$bg.';');
+    }
+
+    $output .= theme('table', array('header'=>$header, 'rows' => $rows, 'attributes' => array('border'=>1, 'cellpadding' => 3)));
+      // set font
+      
+    $pdf->AddPage('L', 'LETTER');
+    $pdf->room = $room_name;
+    $pdf->timeblock= $timeblock_wrapper->title->value();  
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->writeHTML($output, true, false, false, false, '');
+  } 
+}
+
+/**
+ * Generates pdfs for ALL rooms and timeblocks in system
+ */
+function mlmta_solo_room_schedule_all() {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', array('rooms'));
+  $result = $query->execute();
+  $tids = array_keys($result['taxonomy_term']);
+  $pdf = new MYPDF('L','mm', 'letter');
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  $pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  // set header and footer fonts
+  $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+  $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+  
+  // set default monospaced font
+  $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+  
+  // set margins
+  $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+  $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+  $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+  foreach ($tids as $tid) {
+    mlmta_solo_room_schedule_output($tid, $pdf);
+  }
+  
+  // return $output;
+  $out = $pdf->Output('tempo.pdf', 'I');
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment; filename="MLMTASoloRoomSchedule.pdf"');
+  echo $out;
+  flush();
+  exit();
+}
+
+/**
+ * Creates a form to select room to print
+ */
+function mlmta_solo_room_schedule_room_form($form, &$form_state, $event) {
+    
+    if (empty($event)) {
+        return 'Error: the event id is incorrect. Contact the site administrator.';
+    }
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'taxonomy_term')
+        ->entityCondition('bundle', 'rooms')->fieldCondition('field_event_reference', 'target_id', $event->event_id);
+    $result = $query->execute();
+    if (!empty($result['taxonomy_term'])) {
+        $options = array();
+        $tids = array_keys($result['taxonomy_term']);
+        foreach ($tids as $tid) {
+            $term = taxonomy_term_load($tid);
+            $options[$tid] = check_plain($term->name); 
+        }
+        
+    } else {
+        return 'No rooms have been defined';
+    }
+    
+    $form['room'] = array(
+      '#type' => 'radios' ,
+      '#title' => t('Room'),
+      '#description' => t('Select a room for which you wish to generate the PDF room schedule. Be patient after submitting - it may take a while.'),
+      '#required' => TRUE,
+      '#options' => $options,
+    );
+    
+    $form['anonymize'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Anonymize'),
+      '#description' => t('Hide teacher name in the room schedules'),
+    );
+    
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => 'Generate PDF',
+
+    );
+    return $form;    
+}
+
+/**
+ * Submit handler
+ */
+function mlmta_solo_room_schedule_room_form_submit($form, &$form_state) {
+    $room = $form_state['values']['room'];
+    
+    $variables = array();
+    if (isset($form_state['values']['anonymize']) && $form_state['values']['anonymize']) {
+      $variables['anonymize'] = TRUE;
+    }
+    mlmta_solo_room_schedule_entry($room, $variables);   
+}

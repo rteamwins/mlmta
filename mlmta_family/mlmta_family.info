@@ -1,0 +1,4 @@
+name = Registration MLMTA Family modal
+description = Provides modal view of other family members and assigned times.
+core = 7.x
+package = MLMTA

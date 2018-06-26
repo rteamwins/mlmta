@@ -1,0 +1,190 @@
+<?php
+
+require_once('sites/all/libraries/tcpdf/tcpdf.php');
+require_once('sites/all/libraries/fpdi/fpdi.php');
+
+class PDF extends FPDI
+{
+    /**
+     * "Remembers" the template id of the imported page
+     */
+    var $_tplIdx;
+
+    /**
+     * Draw an imported PDF logo on every page
+     */
+    function Header()
+    {
+        if (is_null($this->_tplIdx)) {
+            $path = drupal_get_path('module', 'mlmta_solo_judgesheets');
+            $this->setSourceFile($path.'/solo-adjudication-form.pdf');
+            $this->_tplIdx = $this->importPage(1);
+        }
+        $size = $this->useTemplate($this->_tplIdx);
+    }
+
+    function Footer()
+    {
+        // emtpy method body
+    }
+}
+
+/*
+ * Implements hook_menu().
+ */
+
+function mlmta_solo_judgesheets_menu() {
+  $items['solo-pdf-judgesheets'] = array(
+    'page callback' => 'mlmta_solo_judgesheets_entry',
+    'access arguments' => array('administer line items'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/*
+ * Entry point for printing certificates
+ */
+function mlmta_solo_judgesheets_entry(){
+  //  get all the registrants (commerce line items of type registration or ensemble-registration) and build array of names
+  
+  //$q = db_select('pursuit', 'pursuit');
+  //$q->fields('pursuit', array('pursuit_id'));
+  //$q->condition('type', 'piano_solo');
+  //$q->join('field_data_pursuit_order_paid', 'order_paid', 'order_paid.entity_id = pursuit.pursuit_id AND order_paid.pursuit_order_paid_value = :ph1', array(':ph1' => 1));
+  //$q->join('field_data_pursuit_timeblock_reference', 'pursuit_timeblock', 'pursuit_timeblock.entity_id = pursuit.pursuit_id');
+  //$q->addField('pursuit_timeblock', 'pursuit_timeblock_reference_target_id');
+  //$q->join('field_data_timeblock_room', 'timeblock_room', 'timeblock_room.entity_id = pursuit_timeblock.pursuit_timeblock_reference_target_id');
+  //$q->addField('timeblock_room', 'timeblock_room_tid');
+  //$q->join('taxonomy_term_data', 'taxonomy_term', 'taxonomy_term.tid = timeblock_room.timeblock_room_tid');
+  //$q->addField('taxonomy_term', 'name');
+  //$q->join('timeblock', 'timeblock', 'timeblock.timeblock_id = pursuit_timeblock.pursuit_timeblock_reference_target_id');
+  //$q->addField('timeblock', 'title');
+  //$q->join('field_data_pursuit_date', 'pursuit_date', 'pursuit_date.entity_id = pursuit.pursuit_id');
+  //$q->addField('pursuit_date', 'pursuit_date_value');
+  //$q->orderBy('taxonomy_term.name');
+  //$q->orderBy('timeblock.title');
+  //$q->orderBy('pursuit_date.pursuit_date_value');
+  //$result = $q->execute();
+  
+  $q = db_query(
+  "SELECT pursuit.pursuit_id AS pursuit_id, pursuit_timeblock.pursuit_timeblock_reference_target_id AS pursuit_timeblock_reference_target_id, timeblock_room.timeblock_room_tid AS timeblock_room_tid, taxonomy_term.name AS name, timeblock.title AS title, pursuit_date.pursuit_date_value AS pursuit_date_value
+  FROM 
+  {pursuit} pursuit
+  INNER JOIN {field_data_pursuit_order_paid} order_paid ON order_paid.entity_id = pursuit.pursuit_id AND order_paid.pursuit_order_paid_value = :ph1
+  INNER JOIN {field_data_pursuit_timeblock_reference} pursuit_timeblock ON pursuit_timeblock.entity_id = pursuit.pursuit_id
+  INNER JOIN {field_data_timeblock_room} timeblock_room ON timeblock_room.entity_id = pursuit_timeblock.pursuit_timeblock_reference_target_id
+  INNER JOIN {taxonomy_term_data} taxonomy_term ON taxonomy_term.tid = timeblock_room.timeblock_room_tid
+  INNER JOIN {timeblock} timeblock ON timeblock.timeblock_id = pursuit_timeblock.pursuit_timeblock_reference_target_id
+  INNER JOIN {field_data_pursuit_date} pursuit_date ON pursuit_date.entity_id = pursuit.pursuit_id
+  WHERE  (pursuit.type = :db_condition_placeholder_0) 
+  ORDER BY SUBSTRING_INDEX(pursuit_date.pursuit_date_value, ' ', 1) ASC, taxonomy_term.name ASC, SUBSTRING_INDEX(pursuit_date.pursuit_date_value, ' ', -1) ASC
+  ", array(':ph1' => 1, ':db_condition_placeholder_0' => 'piano_solo'));
+
+  $result = $q->fetchAllAssoc('pursuit_id');
+
+  if (empty($result)) {
+    drupal_set_message('You can\'t print any judge sheets because there are no registrants in the system', 'warning');
+    drupal_goto('<front>');
+  }
+  $pursuits = pursuit_load_multiple(array_keys($result));
+  
+  $pdf = mlmta_solo_judgesheets_do_the_pdf($pursuits);
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment; filename="MLMTASoloJudgeSheet.pdf"');
+  echo $pdf;
+  flush();
+  exit();
+}
+
+
+function mlmta_solo_judgesheets_sort($pursuit_a, $pursuit_b) {
+  $student_a = student_load($pursuit_a->pursuit_student_reference['und'][0]['target_id']);
+  $student_b = student_load($pursuit_b->pursuit_student_reference['und'][0]['target_id']);
+  $last_name_a = $student_a->student_last_name['und'][0]['value'];
+  $last_name_b = $student_b->student_last_name['und'][0]['value'];
+  return (strcmp($last_name_a, $last_name_b));
+}
+/*
+ * Generates the pdf
+ * @param array $names
+ *    An array of first names and last names
+ * @return string $output
+ *    the PDF output
+ */
+
+function mlmta_solo_judgesheets_do_the_pdf($pursuits) {
+  
+  // initiate PDF
+  $pdf = new PDF('P','mm', 'LETTER');
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  //$pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  foreach ($pursuits as $pursuit){
+    $wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    $pdf->AddPage('P','LETTER');
+    
+
+    $pdf->SetFont('freesans', '', 11);
+    $pdf->SetXY(28, 43.5, TRUE);
+    if (!empty($wrapper->pursuit_timeblock_reference->value())) {
+        // Date
+        $pdf->Write(0, date('m/d/y', $wrapper->pursuit_timeblock_reference->timeblock_date->value->value()));
+    
+        // Room
+        $pdf->SetX(63, TRUE);
+        $pdf->Write(0, $wrapper->pursuit_timeblock_reference->timeblock_room->name->value());
+    
+        // Time
+        $pdf->SetX(111.5, TRUE);
+        $pdf->Write(0, date('h:i A', $wrapper->pursuit_date->value->value()));
+        
+    }
+
+    // Level
+    $pdf->SetX(143, TRUE);
+    $pdf->Write(0, $wrapper->field_piano_solo_level->value());
+    
+    // name
+    $pdf->SetFont('freesans', '', 16);
+    $pdf->SetXY(16, 51, TRUE);
+    $pdf->Write(0, $pursuit->title);
+    
+    // Age
+    $pdf->SetFont('freesans', '', 10);
+    $pdf->SetXY(26, 59.5, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_student_reference[0]->student_calculated_age->value());
+    
+    // Teacher code
+    $pdf->SetX(65.5, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_teacher_reference[0]->teacher_code->value());
+    // Years current
+    $pdf->SetX(133, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_student_reference[0]->student_calculated_time->value());
+    // Years current
+    if($wrapper->pursuit_student_reference[0]->field_years_with_previous_teache->value() > 0){
+      $pdf->SetX(170, TRUE);
+      $pdf->Write(0, $wrapper->pursuit_student_reference[0]->field_years_with_previous_teache->value());      
+    }
+    
+    // Piece 1
+    $pdf->SetFont('freesans', '', 11);
+    $pdf->SetXY(16, 68, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_piece_reference[0]->title->value());
+    // Composer 1
+    $pdf->SetX(149, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_piece_reference[0]->piece_composer->name->value());
+
+    // Piece 2
+    $pdf->SetFont('freesans', '', 11);
+    $pdf->SetXY(16, 80, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_piece_reference[1]->title->value());
+    // Composer 1
+    $pdf->SetX(149, TRUE);
+    $pdf->Write(0, $wrapper->pursuit_piece_reference[1]->piece_composer->name->value());    
+    
+  }
+  $pdf->Output();
+}
+
+
