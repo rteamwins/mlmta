@@ -1,33 +1,39 @@
 (function ($) {
   $(function() {
     console.log('Here we go!');
-    if ($('#edit-student-1-new-teacher').is(":checked")) {
-      // $("#teacher-1-fieldset :input").prop('disabled', false);
-      $(".form-item-student-1-previous-teachers").hide('fast');
-      $("#edit-student-1-teacher-fieldset-message").hide('fast');
-    }
-    var fields;
-    $("#edit-student-1-new-teacher").once('createNewTeacher').on('change', function(){
-      console.log('process');
-      $("#teacher-1-fieldset :input").prop('disabled', false).val('');
-      if ($('#edit-student-1-new-teacher').is(":checked")) {
-        $(".form-item-student-1-previous-teachers").hide('fast');
-        $("#edit-student-1-teacher-fieldset-message").hide('fast');
-        //fields = [];
-        //$("#teacher-1-fieldset :input").each(function() {
-        //  fields.push($(this).val());
-        //});
-      } else {
-        $(".form-item-student-1-previous-teachers").show('fast');
-        $("#edit-student-1-previous-teachers").val('_blank');
-        $("#edit-student-1-previous-teachers").trigger('chosen:updated');
-        $("#edit-student-1-teacher-fieldset-message").show('fast');
-        //$("#teacher-1-fieldset :input").prop('disabled', true)   
-        //for (var i = 0; i < fields.length; i++) {
-        //  $("#teacher-1-fieldset :input")[i].value  = fields[i];
-        //}
-      }        
+
+    $(".theory-test").on('change', function(event){
+      var value = $(this).val();
+      switch (value) {
+        case 'Piano':
+          setOptions(8);
+          break;
+        case 'Treble clef':
+        case 'Alto clef':
+        case 'Bass clef':
+        case 'Guitar':
+          setOptions(6);
+          break;
+        case 'Vocal bass clef':
+        case 'Vocal treble clef':
+          setOptions(4);
+      }      
     });
+    
+    var setOptions = function(level) {
+      var levels = ['P', '1', '2', '3', '4', '5', '6', '7', '8'];
+      $(".theory-level").empty().append($('<option>', {
+          value: '_none',
+          text: '- Select -',
+        }));
+      for (var i=0; i<= level; i++) {
+        $(".theory-level").append($('<option>',{
+          value: i,
+          text: levels[i],
+        }));
+      }
+      $(".theory-level").trigger("chosen:updated");
+    }
   });
 })(jQuery)
 

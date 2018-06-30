@@ -4,7 +4,7 @@ function _form_mlmta_piano_solo_steps() {
   return array (
     1 => array (
       'form' => 'mlmta_piano_solo_student',
-      'title' => 'Piano solo form. Student. Step 1 of 2.',
+      'title' => 'DSF solo form. Student. Step 1 of 2.',
       'validation' => array(
         'mlmta_piano_solo_student_1_process'  // These are validation functions to call when any submit button is pressed (next, previous, etc)
       ),
@@ -13,7 +13,7 @@ function _form_mlmta_piano_solo_steps() {
 
     2 => array(
       'form' => 'mlmta_piano_solo_pieces',
-      'title' => 'Piano solo form. Repertoire. Step 2 of 2.',
+      'title' => 'DSF solo form. Repertoire and level. Step 2 of 2.',
       'validation' => array(),
       'submit hook' => 'mlmta_piano_solo_pieces_submit_hook',
     ),
@@ -132,6 +132,7 @@ function mlmta_piano_solo_previous_submit($form, &$form_state) {
  */
 function mlmta_piano_solo_student($form, &$form_state) {
   $form = array();
+  $form['#attached']['js'] = array(drupal_get_path('module', 'mlmta_solo_forms') . '/mlmta_solo.js');
   global $user;
   $current_user = user_load($user->uid);
   $current_step = &$form_state['step']; 
@@ -152,6 +153,33 @@ function mlmta_piano_solo_student($form, &$form_state) {
       'callback' => '_mlmta_student_1_prepopulate',
       'wrapper' => 'student-1-fieldset',
     ),
+    '#weight' => -99,
+  );
+  $form['student_1']['instrument'] = array(
+    '#type' => 'select',
+    '#title' => t('Instrument'),
+    '#required' => TRUE,
+    '#options' => mlmta_solo_forms_instruments(),
+    '#weight' => -97,
+    '#default_value' => 'Piano',
+  );
+  
+  $form['student_1']['theory_test'] = array(
+    '#type' => 'select',
+    '#title' => t('Theory test type'),
+    '#required' => TRUE,
+    '#options' => mlmta_solo_forms_theory_types(),
+    '#attributes' => array('class' => array('theory-test')),
+    '#weight' => -96,
+  );
+  
+  $form['student_1']['theory_level'] = array(
+    '#type' => 'select',
+    '#title' => t('Theory test level'),
+    '#required' => TRUE,
+    '#options' => mlmta_solo_forms_theory_levels(),
+    '#attributes' => array('class' => array('theory-level')),
+    '#weight' => -95,
   );
     
   // Create an empty student object
@@ -169,6 +197,9 @@ function mlmta_piano_solo_student($form, &$form_state) {
     if (!empty($form_state['pursuit'])) {
       $student = student_load($form_state['pursuit']->pursuit_student_reference['und'][0]['target_id']);
       $form['student_1']['previous_students']['#default_value'] = $form_state['pursuit']->pursuit_student_reference['und'][0]['target_id'];
+      $form['student_1']['theory_test']['#default_value'] = $form_state['pursuit']->field_dsf_theory_test['und'][0]['value'];
+      $form['student_1']['theory_level']['#default_value'] = $form_state['pursuit']->field_dsf_theory_test_level['und'][0]['value'];
+      $form['student_1']['instrument']['#default_value'] = $form_state['pursuit']->field_instrument_list['und'][0]['value'];
     } 
   }
     // Let's check if we've been here before. If so, we need to reset the #default_values
@@ -176,6 +207,9 @@ function mlmta_piano_solo_student($form, &$form_state) {
     // Form is being revisited
     $stored_values = &$form_state['step_information'][$current_step]['stored_values']['student_1'];
     $form['student_1']['previous_students']['#default_value'] = $stored_values['previous_students'];
+    $form['student_1']['theory_test']['#default_value'] = $stored_values['theory_test'];
+    $form['student_1']['theory_level']['#default_value'] = $stored_values['theory_level'];
+    $form['student_1']['instrument']['#default_value'] = $stored_values['instrument'];
     $student = student_load($stored_values['previous_students']);
   }
   
@@ -190,11 +224,11 @@ function mlmta_piano_solo_student($form, &$form_state) {
     '#prefix' => '<fieldset id="student-1-fieldset"><legend>Selected student</legend><div class="fieldset-wrapper">',
     '#suffix' => '</div></fieldset>',
     //'#tree' => TRUE,
+    '#weight' => -98,
    );
   
   
   //****  Teacher 1
-  //$form['#attached']['js'] = array(drupal_get_path('module', 'mlmta_solo_forms') . '/mlmta_solo.js');
 
   $form['student_1']['previous_teachers'] = array(
     '#type' => 'select',
@@ -249,6 +283,7 @@ function mlmta_piano_solo_student_1_submit_hook($form, &$form_state) {
 function mlmta_piano_solo_pieces($form, &$form_state) {
 
   $current_step = &$form_state['step'];
+  $form['#attached']['js'] = array(drupal_get_path('module', 'mlmta_solo_forms') . '/mlmta_solo.js');
   
   $form['piece1_fieldset'] = array(
     '#tree' => TRUE,
@@ -276,43 +311,22 @@ function mlmta_piano_solo_pieces($form, &$form_state) {
   );
   
   $form['rep_notice'] = array(
-    '#markup' => '<ul><li>Elementary: 2 contrasting pieces, at least 16 measures each. (3 minutes max.)</li><li>Lower Intermediate: 2 musical eras, at least 1 Baroque or Classical.** (6 minutes)</li><li>Upper Intermediate: Any 2 eras.** (6 minutes)</li><li>Advanced: Advanced: 2 eras OR 1 complete Sonata or Baroque Suite. No arrangements, except for standard repertoire such as Bach-Busoni. (10 minutes)</li></ul>** No arrangements or pop music.',
+    '#markup' => 'Check guidelines in the MLMTA handbook. Total playing time must be precise. Students using copied music or who have "no music" will automatically be disqualified.',
     '#weight' => -66,
   );
   
-  $pursuit_temp = entity_create('pursuit', array('type'=>'piano_solo'));
-  $form_temp = array();
-  // Attach level to form
-  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_piano_solo_level'));
-  $form['field_piano_solo_level'] = $form_temp['field_piano_solo_level'];
-  $form['field_piano_solo_level']['#weight'] = -69;
+  $pursuit_temp = empty($form_state['pursuit']) ? entity_create('pursuit', array('type'=>'piano_solo')) : $form_state['pursuit'];
 
   //$form_temp = array();
-  //// Attach study with current teacher to form
-  //field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_current_teacher_time'));
-  //$form['field_current_teacher_time'] = $form_temp['field_current_teacher_time'];
-  //$form['field_current_teacher_time']['#weight'] = -71;
-  
-  //$form_temp = array();
-  //// Attach study with former teacher to form
-  //field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_former_teacher_time'));
-  //$form['field_former_teacher_time'] = $form_temp['field_former_teacher_time'];
-  //$form['field_former_teacher_time']['#weight'] = -70;
+  //// Attach level to form
+  //field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_piano_solo_level'));
+  //$form['field_piano_solo_level'] = $form_temp['field_piano_solo_level'];
+  //$form['field_piano_solo_level']['#weight'] = -69;
 
-  $form_temp = array();
-  // Attach preferred day to form
-  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_preferred_day'));
-  $form['field_preferred_day'] = $form_temp['field_preferred_day'];
-  $form['field_preferred_day']['#weight'] = 49;
   
-    $form_temp = array();
+  $form_temp = array();
   // Attach preferred time to form
-  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'pursuit_preferred_time'));
-  // Get rid of options not needed for the solo
-  unset($form_temp['pursuit_preferred_time']['und']['#options']['am']);
-  unset($form_temp['pursuit_preferred_time']['und']['#options']['eam']);
-  unset($form_temp['pursuit_preferred_time']['und']['#options']['lam']);
-  unset($form_temp['pursuit_preferred_time']['und']['#options']['pm']);
+  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'pursuit_preferred_time'));  
   $form['pursuit_preferred_time'] = $form_temp['pursuit_preferred_time'];
   $form['pursuit_preferred_time']['#weight'] = 50;
   
@@ -322,14 +336,6 @@ function mlmta_piano_solo_pieces($form, &$form_state) {
     // Editing an existing one!
     $piece1 = piece_load($form_state['pursuit']->pursuit_piece_reference['und'][0]['target_id']);
     $piece2 = piece_load($form_state['pursuit']->pursuit_piece_reference['und'][1]['target_id']);
-    $form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $form_state['pursuit']->field_piano_solo_level['und'][0]['value'];
-    //$form['field_former_teacher_time'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->field_former_teacher_time['und']) ?
-          //$form_state['pursuit']->field_former_teacher_time['und'][0]['value'] : '_none';
-    // $form['field_current_teacher_time'][LANGUAGE_NONE]['#default_value'] = $form_state['pursuit']->field_current_teacher_time['und'][0]['value'];
-    $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->pursuit_preferred_time['und']) ?
-          $form_state['pursuit']->pursuit_preferred_time['und'][0]['value'] : '_none' ;
-    $form['field_preferred_day'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->field_preferred_day['und']) ?
-          $form_state['pursuit']->field_preferred_day['und'][0]['value'] : '_none' ;
     $form['piece1_fieldset']['title']['#default_value'] = $piece1->title;
     $form['piece2_fieldset']['title']['#default_value'] = $piece2->title;
   }
@@ -352,21 +358,12 @@ function mlmta_piano_solo_pieces($form, &$form_state) {
     $form['piece2_fieldset']['piece_composer'][LANGUAGE_NONE]['#default_value'] = $stored_values['piece2_fieldset']['piece_composer']['und'][0]['name'];
     $form['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     $form['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
-    unset($form_state['input']['field_piano_solo_level']);
-    $form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
-    
-    //unset($form_state['input']['field_current_teacher_time']);
-    //$form['field_current_teacher_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_current_teacher_time'][LANGUAGE_NONE][0]['value'];
-    
-    //unset($form_state['input']['field_former_teacher_time']);
-    //$form['field_former_teacher_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_former_teacher_time'][LANGUAGE_NONE][0]['value'];
-
-    unset($form_state['input']['field_preferred_day']);
-    $form['field_preferred_day'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_preferred_day'][LANGUAGE_NONE][0]['value'];
-    
+        
     unset($form_state['input']['pursuit_preferred_time']);
     $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['pursuit_preferred_time'][LANGUAGE_NONE][0]['value'];
+    
   }
+
     
   $form_state['visited'] = FALSE;
   return $form;
@@ -437,20 +434,16 @@ function mlmta_piano_solo_form_submit($form, &$form_state) {
   $piece_2_wrapper->save();
   $piece_2_id = $piece_2_wrapper->getIdentifier();
   
-  // Get key for level
-  $level_key = $form_state['step_information'][$pieces_step]['stored_values']['field_piano_solo_level']['und'][0]['value'];
+  // Get key for level and instrument
+  $theory_key = $form_state['step_information'][$student_1_step]['stored_values']['student_1']['theory_test'];
+  $theory_level_key = $form_state['step_information'][$student_1_step]['stored_values']['student_1']['theory_level'];
+  $instrument_key = $form_state['step_information'][$student_1_step]['stored_values']['student_1']['instrument'];
   
-  //// Get value for years with current teacher
-  //$years_current_teacher = $form_state['step_information'][$pieces_step]['stored_values']['field_current_teacher_time']['und'][0]['value'];
-  //
-  //// Get value for years with former teacher
-  //$years_former_teacher = $form_state['step_information'][$pieces_step]['stored_values']['field_former_teacher_time']['und'][0]['value'];
-
   // Get value for preferred time
   $preferred_time = $form_state['step_information'][$pieces_step]['stored_values']['pursuit_preferred_time']['und'][0]['value'];
 
   // Get value for preferred day
-  $preferred_day = $form_state['step_information'][$pieces_step]['stored_values']['field_preferred_day']['und'][0]['value'];  
+  // $preferred_day = $form_state['step_information'][$pieces_step]['stored_values']['field_preferred_day']['und'][0]['value'];  
 
   // Create or update pursuit
   if(!empty($form_state['pursuit'])) {
@@ -461,14 +454,13 @@ function mlmta_piano_solo_form_submit($form, &$form_state) {
   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
   $pursuit_wrapper->pursuit_student_reference->set(array($student_1_id));
   $pursuit_wrapper->pursuit_piece_reference->set(array($piece_1_id, $piece_2_id));
-  $pursuit_wrapper->pursuit_instrument->set(array('Piano'));
+  $pursuit_wrapper->field_instrument_list[0]->set($instrument_key);
   $pursuit_wrapper->pursuit_teacher_reference->set(array($teacher_1_id));
-  $pursuit_wrapper->field_piano_solo_level->set($level_key);
-//  $pursuit_wrapper->field_current_teacher_time->set($years_current_teacher);
-//  $pursuit_wrapper->field_former_teacher_time->set($years_former_teacher);
   $pursuit_wrapper->pursuit_preferred_time->set($preferred_time);
-  $pursuit_wrapper->field_preferred_day->set($preferred_day);
+  //$pursuit_wrapper->field_preferred_day->set($preferred_day);
   $pursuit_wrapper->field_event_reference->set(variable_get('tenuto_solo_event', NULL));
+  $pursuit_wrapper->field_dsf_theory_test[0]->set($theory_key);
+  $pursuit_wrapper->field_dsf_theory_test_level[0]->set($theory_level_key);
 
   pursuit_update_name($pursuit);
   pursuit_update_duration($pursuit);

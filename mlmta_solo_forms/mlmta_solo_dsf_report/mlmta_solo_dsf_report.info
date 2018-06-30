@@ -1,0 +1,6 @@
+name = MLMTA DSF report
+description = Generates a CSV report for the MLMTA DSF festival
+core = 7.x
+package = MLMTA
+
+dependencies[] = mlmta_solo_forms

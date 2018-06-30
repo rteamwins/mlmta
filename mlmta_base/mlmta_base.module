@@ -9,26 +9,26 @@
 require_once('sites/all/libraries/tcpdf/tcpdf.php');
 // Extend the TCPDF class to create custom Header and Footer
 class MYPDF extends TCPDF {
-    public $room = 'Undefined';
-    public $timeblock = 'Undefined';
-    public $event = 'Undefined';
-
-      public function Header() {
-        // Set font
-        $this->SetFont('helvetica', 'B', 15);
-        $this->SetY(10);
-        // Title
-        $this->Cell(0, 15, $this->event, 0, false, 'C', 0, '', 0, false, 'M', 'M');
-    }
-    // Page footer
-    public function Footer() {
-        // Position at 15 mm from bottom
-        $this->SetY(-15);
-        // Set font
-        $this->SetFont('helvetica', '', 9);
-        // Page number
-        $this->Cell(0, 10, 'Room: ' . $this->room .'. Time block: '.$this->timeblock.'. Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
-    }
+  public $room = 'Undefined';
+  public $timeblock = 'Undefined';
+  public $event = 'Undefined';
+  
+  public function Header() {
+    // Set font
+    $this->SetFont('helvetica', 'B', 15);
+    $this->SetY(10);
+    // Title
+    $this->Cell(0, 15, $this->event, 0, false, 'C', 0, '', 0, false, 'M', 'M');
+  }
+  // Page footer
+  public function Footer() {
+    // Position at 15 mm from bottom
+    $this->SetY(-15);
+    // Set font
+    $this->SetFont('helvetica', '', 9);
+    // Page number
+    $this->Cell(0, 10, 'Room: ' . $this->room .'. Time block: '.$this->timeblock.'. Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+  }
 }
 
 /**
@@ -52,7 +52,7 @@ function mlmta_base_menu() {
     'access callback' => 'user_is_logged_in',
     'type' => MENU_CALLBACK,
   );
-  
+
 
   return $items;
 }
@@ -65,40 +65,14 @@ function mlmta_base_menu() {
  */
 function mlmta_base_edit_page($pursuit) {
   switch ($pursuit->type) {
-    case 'piano_duet_performance':
-      $form_id = 'mlmta_piano_duet_form';
-      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_duet');
-      break;
-    case 'piano_duo_performance':
-      $form_id = 'mlmta_piano_duo_form';
-      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_duo');
-      break;
-    case 'piano_concerto_ensemble':
-      $form_id = 'mlmta_concerto_ensemble_form';
-      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_concerto_ensemble');
-      break;
-    case 'piano_trio_performance':
-      $form_id = 'mlmta_piano_trio_form';
-      module_load_include('inc', 'mlmta_ensemble_forms', 'mlmta_piano_trio');
-      break;
-    case 'vocal_solo_performance':
-      $form_id = 'mlmta_vocal_solo_form';
-      module_load_include('inc','mlmta_ensemble_forms','mlmta_vocal_solo');
-      break;
+    // These machine names are inherited from dsmta. In fact, solo = piano_solo and ensemble = vocal_ensemble_performance
     case 'vocal_ensemble_performance':
-      $form_id = 'mlmta_vocal_ensemble_form';
-      module_load_include('inc','mlmta_ensemble_forms','mlmta_vocal_ensemble');
+      $form_id = 'mlmta_ensemble_form';
+      module_load_include('inc','mlmta_solo_forms','mlmta_ensemble');
       break;
     case 'piano_solo':
       $form_id = 'mlmta_piano_solo_form';
       module_load_include('inc', 'mlmta_solo_forms', 'mlmta_solo');
-      break;
-    case 'piano_theory':
-    case 'voice_theory':
-    case 'written_theory':
-    case 'aural_theory':
-      $form_id = 'mlmta_theory_form';
-      module_load_include('inc', 'mlmta_theory_forms', 'mlmta_theory');
       break;
   }
   if (!mlmta_base_edit_access_check($pursuit)) {
@@ -116,22 +90,11 @@ function mlmta_base_edit_page($pursuit) {
 function mlmta_base_view_page($pursuit) {
   switch ($pursuit->type) {
     case 'piano_solo':
-      return mlmta_solo_forms_page($pursuit);
-      break;
     case 'vocal_ensemble_performance':
-    case 'vocal_solo_performance':
-    case 'piano_trio_performance':
-    case 'piano_concerto_ensemble':
-    case 'piano_duo_performance':
-    case 'piano_duet_performance':
-      return mlmta_ensemble_forms_page($pursuit);
+      return mlmta_solo_forms_page($pursuit); // These two use exactly the same view function
       break;
-    case 'aural_theory':
-    case 'written_theory':
-    case 'voice_theory':
-    case 'piano_theory':
-      return mlmta_theory_forms_modal_show(NULL, $pursuit);
-      break;
+    default :
+        return 'Undefined';
   }
 
 }
@@ -432,7 +395,7 @@ function mlmta_base_views_pre_render(&$views) {
         ),
         'closeText' => '',
         'animation' => 'fadeIn',
-        'closeImage' => theme('image', array('path' => ctools_image_path('close-image-small.png', 'mlmta_base_forms'), 'alt' => t('Close window'), 'title' => t('Close window'))),
+        'closeImage' => theme('image', array('path' => ctools_image_path('close-image-small.png', 'mlmta_base'), 'alt' => t('Close window'), 'title' => t('Close window'))),
       ),
     ), 'setting');
   }
@@ -512,3 +475,86 @@ function mlmta_base_pursuit_delete($pursuit) {
 //    'path' => drupal_get_path('module', 'mlmta_base') . '/views',
 //  );
 //}
+
+
+/**
+ * Create an option list with instruments
+ */
+function mlmta_base_instrument_list() {
+    $options = array (
+      'piano' => t('Piano'),
+      'voice' => t('Voice'),
+      'Strings'=> array(
+        'violin' => t('Violin'),
+        'viola' => t('Viola'),
+        'cello' => t('Cello'),
+        'bass' => t('Bass'),
+        'harp' => t('Harp'),
+        'guitar' => t('Guitar'),
+      ),
+      'Woodwinds' => array(
+        'flute' => t('Flute'),
+        'clarinet' => t('Clarinet'),
+        'oboe' => t('Oboe'),
+        'ehorn' => t('English horn'),
+        'recorder' => t('Recorder'),
+        'horn' => t('French horn'),
+        'saxophone' => t('Saxophone'),
+      ),
+      'Brass' => array(
+        'trumpet' => t('Trumpet'),
+        'trombone' => t('Trombone'),
+        'tuba' => t('Tuba'),
+        'euphonium' => t('Euphonium'),
+      ),
+      'percussion' => t('Percussion'),
+      'vibraphone' => t('Vibraphone'),
+      'marimba' => t('Marimba'),
+    );
+    return $options;
+}
+
+/**
+ * Implements hook_views_aggregation_functions_info().
+ */
+function mlmta_base_views_aggregation_functions_info() {
+  $functions = array(
+    'views_aggregator_enumerate_ages' => array(
+      'group' => t('Subg enum (custom)'),
+      'column' => NULL,
+    ),
+  );
+  return $functions;
+}
+
+/**
+ * Experimental. This sucks, but it's the only way I can enumerate first member of subgroups of rows with the same student id
+ *
+ * It only works for a specific field in a specific views
+ * 
+ * @param array $groups
+ *   an array of groups of rows, each group indexed by group value
+ * @param object $field_handler
+ *   the handler for the view column to find the maximum groups member in
+ * @param string $field_in_row
+ *   the name of the field as it appears in the $row object to use as subgrouping. This is the best I can do :( 
+ * @return array
+ *   an array of values, containung only the 'column' group
+ */
+function views_aggregator_enumerate_ages($groups, $field_handler, $field_in_row) {
+  $values = array();
+  foreach ($groups as $group => $rows) {
+    $running_student_id = 0;
+    $ages = array();
+    foreach ($rows as $num => $row) {
+      if (!isset($row->{$field_in_row})) break; 
+      $ages[$row->{$field_in_row}] = views_aggregator_get_cell($field_handler, $num, TRUE);
+    }
+    if( count($ages) >0 ) {
+      $values[$group] =  implode(', ', $ages);    
+    } else {
+      $values[$group] = 'No data';
+    }
+  }
+  return $values;
+}
