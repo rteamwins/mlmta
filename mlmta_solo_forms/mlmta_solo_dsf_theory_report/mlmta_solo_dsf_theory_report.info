@@ -1,0 +1,4 @@
+name = MLMTA DSF theory report
+description = Generates a PDF of theory test and level for DSF students
+core = 7.x
+package = MLMTA

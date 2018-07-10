@@ -1,9 +1,5 @@
 <?php
 
-/**
- * @file
- * Functions to generate a generic room schedule, based on event_id
- */
 
 
 /**
@@ -16,7 +12,7 @@ function mlmta_solo_room_schedule_menu() {
     'page arguments' => array('mlmta_solo_room_schedule_room_form', 2),
     'access arguments' => array('administer line items'),
     'type' => MENU_CALLBACK,
-    'title'=>'Room schedules.',
+    'title'=>'Room schedules - piano solo.',
   );
   return $items;
 }

@@ -68,9 +68,9 @@ function mlmta_solo_forms_menu(){
     'type' => MENU_CALLBACK,
   );
   
-  $items['admin/config/tenuto-registrations/manage/solo-settings'] = array(
-    'title' => 'Piano solo general settings',
-    'description' => 'General settings for the solo registration form.',
+  $items['admin/config/tenuto-registrations/manage/dsf-settings'] = array(
+    'title' => 'DSF general settings',
+    'description' => 'General settings for the DSF registration forms.',
     'access arguments' => array('create timeblock entities'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_solo_forms_configuration_form'),
@@ -119,17 +119,19 @@ function mlmta_solo_forms_pursuit_calculate_trimmed_duration_alter(&$max_duratio
   }
 }
 
-/**
- * Implements hook_pursuit_update_name_alter().
- *
- */
-function mlmta_solo_forms_pursuit_update_name_alter(&$name, $pursuit) {
-  $wrapper = entity_metadata_wrapper('pursuit', $pursuit);
-  if (isset($wrapper->field_accompanist) && !empty($wrapper->field_accompanist->value())) {
-    $accompanist_wrapper = $wrapper->field_accompanist; 
-    $name[] = $accompanist_wrapper->student_first_name->value() . ' ' . $accompanist_wrapper->student_last_name->value() . ' (acc.)';
-  }
-}
+///** MOVED TO BASE
+// * Implements hook_pursuit_update_name_alter().
+// *
+// */
+//function mlmta_solo_forms_pursuit_update_name_alter(&$name, $pursuit) {
+//  $wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+//  if ($wrapper->field_event_reference->raw() == variable_get('tenuto_solo_event')) {
+//    if (isset($wrapper->field_accompanist) && !empty($wrapper->field_accompanist->value())) {
+//      $accompanist_wrapper = $wrapper->field_accompanist; 
+//      $name[] = $accompanist_wrapper->student_first_name->value() . ' ' . $accompanist_wrapper->student_last_name->value() . ' (acc.)';
+//    } 
+//  }
+//}
 
 /**
  * Implements template_preprocess_field()
@@ -215,7 +217,8 @@ function mlmta_solo_forms_modal_show($ajax, $pursuit){
  */
 function mlmta_solo_forms_configuration_form($form, &$form_state) {
   // Provide a default date in the format YYYY-MM-DD HH:MM:SS.
-  $date = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $event_date = format_date(variable_get('tenuto_solo_event_date','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $deadline = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
   $cutoff = format_date(variable_get('tenuto_solo_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
   $format = "m-d-Y h:i A";
   
@@ -236,6 +239,31 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
       '#default_value' => variable_get('tenuto_solo_event',NULL),
     );
   }
+  
+  $form['location_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Location'),
+  );
+  
+  $form['location_fieldset']['tenuto_solo_event_location'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Location for the DSF festival'),
+    '#default_value' => variable_get('tenuto_solo_event_location', ''),
+  );
+  
+  $form['event_date_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Date'),
+  );
+  $form['event_date_fieldset']['tenuto_solo_event_date'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select a date for DSF festival'),
+     '#description' => 'This is the date when the event will take place.',
+     '#default_value' => $event_date, 
+     '#date_format' => 'M-d-Y',
+  );
+  
+
   $form['deadline_fieldset'] = array(
     '#type' => 'fieldset',
     '#title' => t('Deadline'),
@@ -244,7 +272,7 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
      '#type' => 'date_select', 
      '#title' => t('Select a registration deadline for DSF festival'),
      '#description' => 'The forms will stop accepting registrations after this deadline.',
-     '#default_value' => $date, 
+     '#default_value' => $deadline, 
      '#date_format' => $format,
   );
   
@@ -296,8 +324,12 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
 function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
   $uts = strtotime($form_state['values']['tenuto_solo_form_deadline']);
   $cutoff = strtotime($form_state['values']['tenuto_solo_form_cutoff']);
+  $event_date = strtotime($form_state['values']['tenuto_solo_event_date']);
+  
   variable_set('tenuto_solo_form_deadline', $uts);
   variable_set('tenuto_solo_form_cutoff', $cutoff);
+  variable_set('tenuto_solo_event_date', $event_date);
+  variable_set('tenuto_solo_event_location', $form_state['values']['tenuto_solo_event_location']);
   variable_set('tenuto_solo_email_confirmation_text', $form_state['values']['tenuto_solo_email_confirmation_text']['value']);
   variable_set('tenuto_solo_email_scheduling_text', $form_state['values']['tenuto_solo_email_scheduling_text']['value']);
   if (isset($form_state['values']['tenuto_solo_event'])) {
@@ -305,6 +337,9 @@ function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
     $event = event_load($form_state['values']['tenuto_solo_event']);
     $event->cutoff = $cutoff;
     $event->deadline = $uts;
+    $event_wrapper = entity_metadata_wrapper('event', $event);
+    $event_wrapper->field_event_date = $event_date;
+    $event_wrapper->field_event_location = $form_state['values']['tenuto_solo_event_location'];
     event_save($event);   
   }
   drupal_set_message(t('The settings have been saved.'));
@@ -332,6 +367,23 @@ function mlmta_solo_forms_token_info() {
   $tokens['tokens']['site']['tenuto-solo-form-deadline'] = array(
     'name' => t('Tenuto system form deadline for the DSF festival'),
     'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
+  );
+  // For continuity reasons, we are using "solo" but overloading this with dsf
+  $tokens['tokens']['site']['tenuto-solo-event_date'] = array(
+    'name' => t('Tenuto system date for the DSF festival'),
+    'description' => t('The date for the DSF festival.'),
+  );
+  $tokens['tokens']['site']['tenuto-dsf-event_date'] = array(
+    'name' => t('Tenuto system date for the DSF festival'),
+    'description' => t('The date for the DSF festival.'),
+  );
+  $tokens['tokens']['site']['tenuto-solo-event_location'] = array(
+    'name' => t('Tenuto system location for the DSF festival'),
+    'description' => t('The location for the DSF festival.'),
+  );
+  $tokens['tokens']['site']['tenuto-dsf-event_location'] = array(
+    'name' => t('Tenuto system location for the DSF festival'),
+    'description' => t('The location for the DSF festival.'),
   );
   return $tokens;
 }
@@ -363,6 +415,17 @@ function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $o
           break;
         case 'tenuto-solo-event':
           $value = variable_get('tenuto_solo_event', 0);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-solo-event-date':
+        case 'tenuto-dsf-event-date':
+          $value = format_date(variable_get('tenuto_solo_event_date','1577854800'), 'custom', 'm/d/Y');
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-solo-event-location':
+        case 'tenuto-dsf-event-location':
+          $value = variable_get('tenuto_solo_event_location','');
+          $value = $sanitize ? filter_xss($value) : $value;
           $replacements[$original] = $value;
           break;
       }

@@ -7,7 +7,7 @@
 
 // Include the main TCPDF library (search for installation path).
 require_once('sites/all/libraries/tcpdf/tcpdf.php');
-// Extend the TCPDF class to create custom Header and Footer
+// Extend the TCPDF class to create custom Header and Footer for things related to time blocks
 class MYPDF extends TCPDF {
   public $room = 'Undefined';
   public $timeblock = 'Undefined';
@@ -28,6 +28,29 @@ class MYPDF extends TCPDF {
     $this->SetFont('helvetica', '', 9);
     // Page number
     $this->Cell(0, 10, 'Room: ' . $this->room .'. Time block: '.$this->timeblock.'. Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+  }
+}
+
+// Extension for a neutral, customized footer and header
+class NORMALPDF extends TCPDF {
+  public function Header() {
+    // Set font
+    $this->SetFont('helvetica', '', 14);
+    $this->SetY(10);
+    // Title
+    $this->Cell(0, 15, "Main Line Music Teachers Association", 0, false, 'C', 0, '', 0, false, 'M', 'M');
+    $this->SetFont('helvetica', '', 9);
+    $this->SetY(15);
+    $this->Cell(0,15, "Affiliated with Pennsylvania Music Teachers Association and Music Teachers National Association", 0, false, 'C', 0, '', 0, false, 'M', 'M');
+  }
+  // Page footer
+  public function Footer() {
+    // Position at 15 mm from bottom
+    $this->SetY(-15);
+    // Set font
+    $this->SetFont('helvetica', '', 9);
+    // Page number
+    $this->Cell(0, 10, 'Page: '. $this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
   }
 }
 
@@ -64,6 +87,7 @@ function mlmta_base_menu() {
  *    A pursuit object
  */
 function mlmta_base_edit_page($pursuit) {
+
   switch ($pursuit->type) {
     // These machine names are inherited from dsmta. In fact, solo = piano_solo and ensemble = vocal_ensemble_performance
     case 'vocal_ensemble_performance':
@@ -73,6 +97,14 @@ function mlmta_base_edit_page($pursuit) {
     case 'piano_solo':
       $form_id = 'mlmta_piano_solo_form';
       module_load_include('inc', 'mlmta_solo_forms', 'mlmta_solo');
+      break;
+    case 'recital_solo':
+      $form_id = 'mlmta_recital_solo_form';
+      module_load_include('inc', 'mlmta_recital_forms', 'mlmta_recital_solo');
+      break;
+    case 'recital_ensemble':
+      $form_id = 'mlmta_recital_ensemble_form';
+      module_load_include('inc', 'mlmta_recital_forms', 'mlmta_recital_ensemble');
       break;
   }
   if (!mlmta_base_edit_access_check($pursuit)) {
@@ -92,6 +124,10 @@ function mlmta_base_view_page($pursuit) {
     case 'piano_solo':
     case 'vocal_ensemble_performance':
       return mlmta_solo_forms_page($pursuit); // These two use exactly the same view function
+      break;
+    case 'recital_solo':
+    case 'recital_ensemble':
+      return mlmta_recital_forms_page($pursuit);
       break;
     default :
         return 'Undefined';
@@ -528,16 +564,16 @@ function mlmta_base_views_aggregation_functions_info() {
 }
 
 /**
- * Experimental. This sucks, but it's the only way I can enumerate first member of subgroups of rows with the same student id
+ * Experimental. 
  *
- * It only works for a specific field in a specific views
+ * This is a subgroup aggregator - enumerator, and it can work with any field. The parameter is the views field name on which to sub-aggregate
  * 
  * @param array $groups
  *   an array of groups of rows, each group indexed by group value
  * @param object $field_handler
  *   the handler for the view column to find the maximum groups member in
  * @param string $field_in_row
- *   the name of the field as it appears in the $row object to use as subgrouping. This is the best I can do :( 
+ *   the name of the field on which to sub-aggregate as it appears in the $row object to use as subgrouping. This is the best I can do :( 
  * @return array
  *   an array of values, containung only the 'column' group
  */
@@ -558,3 +594,176 @@ function views_aggregator_enumerate_ages($groups, $field_handler, $field_in_row)
   }
   return $values;
 }
+
+/**
+ * Implements hook_pursuit_update_name_alter().
+ * Replaces hooks in individual mmlmta modules
+ *
+ */
+function mlmta_base_pursuit_update_name_alter(&$name, $pursuit) {
+  $wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if (isset($wrapper->field_accompanist) && !empty($wrapper->field_accompanist->value())) {
+    $accompanist_wrapper = $wrapper->field_accompanist; 
+    $name[] = $accompanist_wrapper->student_first_name->value() . ' ' . $accompanist_wrapper->student_last_name->value() . ' (acc.)';
+  } 
+}
+
+/**
+ * Implements hook_preprocess_views_data_export_csv_body().
+ * Creates a multi-column csv for multiple value referenced fields (in this case, piece) for existing views exports
+ */
+
+function mlmta_base_preprocess_views_data_export_csv_body(&$vars) {
+  if (in_array($vars['view']->name, array('export_registrations','export_registrations_recital_')) && $vars['view']->current_display == 'views_data_export_1') {
+    $agg_field = 'pursuit_id';
+    $fan_out_fields = array('title_1', 'piece_composer', 'name', 'field_instrument_list'); // These are the fields that need to be expanded into columns
+    $fan_out_number = array('title_1' => 2, 'piece_composer' => 2, 'name' => 4, 'field_instrument_list' => 4); // Max number of new columns
+    $delta_field = array('title_1' => 'delta_1', 'piece_composer' => 'delta_1', 'name' => 'delta', 'field_instrument_list' => 'delta_2'); // This array maps the field ID to the delta. The view MUST include the delta field for the multiple-value reference fields! 
+     $aggregate = array();
+    $view     = $vars['view'];
+    $fields   = &$view->field;
+    $hide_empty_support = !empty($vars['hide_empty_support']);
+  
+    $rows = $vars['rows'];
+  
+    $keys = array_keys($fields);
+    
+    // First created empty place holders for all fields  
+    foreach ($rows as $num => $row) {
+      $agg_key = $view->style_plugin->rendered_fields[$num][$agg_field];
+      foreach ($keys as $id) {
+        if (empty($fields[$id]->options['exclude'])) {
+          $content = $view->style_plugin->rendered_fields[$num][$id];
+  
+          if ($hide_empty_support && !empty($fields[$id]->options['hide_empty'])) {
+            if ($fields[$id]->is_value_empty($content, $fields[$id]->options['empty_zero'])) {
+              continue;
+            }
+          }
+          if (in_array($id, $fan_out_fields)) {
+            $original_id = $id;
+            for ($i = 0; $i < $fan_out_number[$original_id]; $i++) {
+              $col_name = $col_name = $id . '_' .$i;
+              $aggregate[$agg_key][$col_name] = '""';
+            }
+          } else {
+            $aggregate[$agg_key][$id] = '""';
+          }
+        }
+      }
+    }
+    
+    // Then fill in! 
+    foreach ($rows as $num => $row) {
+      $agg_key = $view->style_plugin->rendered_fields[$num][$agg_field];
+      foreach ($keys as $id) {
+        if (empty($fields[$id]->options['exclude'])) {
+          $content = $view->style_plugin->rendered_fields[$num][$id];
+  
+          if ($hide_empty_support && !empty($fields[$id]->options['hide_empty'])) {
+            if ($fields[$id]->is_value_empty($content, $fields[$id]->options['empty_zero'])) {
+              continue;
+            }
+          }
+          
+          $content = _mlmta_base_helper_preprocess_views_data_export_csv($vars, $content);
+          
+          if (in_array($id, $fan_out_fields)) {
+            $original_id = $id;
+            $found_column = FALSE;
+            
+            $delta_value = $view->style_plugin->rendered_fields[$num][$delta_field[$id]]; 
+            $col_name = $id . '_' .$delta_value;
+            $id = $col_name;
+            
+            if ($delta_value >= $fan_out_number[$original_id]) {
+              continue; // Ignore if the delta for the field is larger than the one defined in fan_out_number (all columns are filled) 
+            }
+          }  
+          $aggregate[$agg_key][$id] = $content;  
+        }
+      }
+    }
+    $vars['themed_rows'] = $aggregate;
+    //dpm($aggregate);
+  }
+
+}
+
+/**
+ * Implements hook_preprocess_views_data_export_csv_header().
+ * Processes the header for the CSV table, fanning out columns
+ */
+function mlmta_base_preprocess_views_data_export_csv_header(&$vars) {
+if (in_array($vars['view']->name, array('export_registrations','export_registrations_recital_')) && $vars['view']->current_display == 'views_data_export_1') {
+    $agg_field = 'pursuit_id';
+    $fan_out_fields = array('title_1', 'piece_composer', 'name', 'field_instrument_list'); // These are the fields that need to be expanded into columns
+    $fan_out_number = array('title_1' => 2, 'piece_composer' => 2, 'name' => 4, 'field_instrument_list' => 4);
+    
+    $view     = $vars['view'];
+    $fields   = &$view->field;
+    $fields_info = $view->display_handler->get_option('fields');
+    $header  = array();
+    foreach ($fields as $key => $field) {
+      if (empty($field->options['exclude'])) {
+        if (isset($fields_info) && isset($fields_info[$key]['label'])) {
+          $title = check_plain($fields_info[$key]['label']);
+        }
+        else {
+          $title = check_plain($field->label());
+        }
+        if (in_array($key, $fan_out_fields)) {
+          for ($i = 0; $i < $fan_out_number[$key]; $i++) {
+            $col_name = _mlmta_base_helper_preprocess_views_data_export_csv($vars, $title . ' ' .($i+1));
+            $header[] = $col_name;
+          }
+        } else {
+          $header[] = _mlmta_base_helper_preprocess_views_data_export_csv($vars, $title);
+        }  
+      }
+    }
+    $vars['header'] = $header;
+  }
+}
+
+
+function _mlmta_base_helper_preprocess_views_data_export_csv (&$vars, $content) {
+  // Special handling when quoted values are involved.
+  if ($vars['options']['quote']) {
+    $wrap = '"';
+    $replace_value = '""';
+  }
+  else {
+    $wrap = '';
+    $replace_value = '';
+  }
+  $output = decode_entities($content);
+  $output = (empty($vars['options']['keep_html'])) ? strip_tags($output) : $output;
+  if (!empty($vars['options']['trim'])) {
+    $output = trim($output);
+  }
+
+  if (!empty($vars['options']['encoding']) && function_exists('iconv')) {
+    switch($vars['options']['encoding']) {
+      case 'utf8_decode':
+        $converted = utf8_decode($output);
+        break;
+      default:
+        $converted = iconv("UTF-8", $vars['options']['encoding'], $output);
+        break;
+    }
+    if ($converted !== FALSE) {
+      $output = $converted;
+    }
+  }
+  if (!empty($vars['options']['replace_newlines'])) {
+    if (!empty($vars['options']['newline_token'])) {
+      $output = str_replace( array("\r\n", "\r", "\n"), $vars['options']['newline_replacement'], $output);
+    }
+    else {
+      $output = str_replace("\n", $vars['options']['newline_replacement'], $output);
+    }
+  }
+  return $wrap . str_replace('"', $replace_value, $output) . $wrap;
+}
+

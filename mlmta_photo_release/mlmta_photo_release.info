@@ -1,0 +1,4 @@
+name = MLMTA photo release form
+description = Produces a PDF with a table for parent signatures for the photo release form
+core = 7.x
+package = MLMTA

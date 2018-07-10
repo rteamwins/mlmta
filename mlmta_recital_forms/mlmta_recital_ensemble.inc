@@ -1,13 +1,13 @@
 <?php
 
-function _form_mlmta_ensemble_steps() {
+function _form_mlmta_recital_ensemble_steps() {
   return array (
     1 => array(
-      'form' => 'mlmta_ensemble_numbers',
-      'title' => 'DSF ensemble form. Number of performers',
+      'form' => 'mlmta_recital_ensemble_numbers',
+      'title' => 'Recital ensemble form. Number of performers',
       'validation' => array(
       ),
-      'submit hook' => 'mlmta_ensemble_numbers_submit_hook',
+      'submit hook' => 'mlmta_recital_ensemble_numbers_submit_hook',
     ),
     
     // This is a dummy step so that the Next button is activated.
@@ -21,16 +21,16 @@ function _form_mlmta_ensemble_steps() {
 /**
  * DSMTA Piano Duet Registration form
  */
-function mlmta_ensemble_form($form, &$form_state, $pursuit = NULL) {
+function mlmta_recital_ensemble_form($form, &$form_state, $pursuit = NULL) {
   // needed content: piece, student, teacher, family, pursuit level
   
   if (empty($form_state['build_info']['files'])) {
-    form_load_include($form_state, 'inc', 'mlmta_solo_forms', 'mlmta_ensemble');  // Yeah I know, the mlmta_solo_forms.module is misnamed!
+    form_load_include($form_state, 'inc', 'mlmta_recital_forms', 'mlmta_recital_ensemble');  
   }
 
   if (empty($form_state['step'])) {
     $form_state['step'] = 1;
-    $form_state['step_information'] = _form_mlmta_ensemble_steps();
+    $form_state['step_information'] = _form_mlmta_recital_ensemble_steps();
   }
   
   if ($pursuit) {
@@ -49,7 +49,7 @@ function mlmta_ensemble_form($form, &$form_state, $pursuit = NULL) {
         '#type' => 'submit',
         '#value' => t('Previous'),
         '#name' => 'prev',
-        '#submit' => array('mlmta_ensemble_previous_submit'),
+        '#submit' => array('mlmta_recital_ensemble_previous_submit'),
         '#weight' => 98,
         // '#limit_validation_errors' => array(),
       );
@@ -59,7 +59,7 @@ function mlmta_ensemble_form($form, &$form_state, $pursuit = NULL) {
         '#type' => 'submit',
         '#value' => t('Next'),
         '#name' => 'next',
-        '#submit' => array('mlmta_ensemble_next_submit'),
+        '#submit' => array('mlmta_recital_ensemble_next_submit'),
         '#weight' => 99,
       );
     } else {
@@ -81,7 +81,7 @@ function mlmta_ensemble_form($form, &$form_state, $pursuit = NULL) {
 /**
  * Submit handler for the next button
  */
-function mlmta_ensemble_next_submit($form, &$form_state) {
+function mlmta_recital_ensemble_next_submit($form, &$form_state) {
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
   // Invoke the additional hook
@@ -106,7 +106,7 @@ function mlmta_ensemble_next_submit($form, &$form_state) {
 /**
  * Submit handler for the previous button
  */
-function mlmta_ensemble_previous_submit($form, &$form_state) {
+function mlmta_recital_ensemble_previous_submit($form, &$form_state) {
   $current_step = &$form_state['step'];
   $form_state['step_information'][$current_step]['stored_values'] = $form_state['values'];
   // Invoke the additional hook
@@ -128,7 +128,7 @@ function mlmta_ensemble_previous_submit($form, &$form_state) {
  * @param &$form_state
  * 
  */
-function mlmta_ensemble_numbers($form, &$form_state) {
+function mlmta_recital_ensemble_numbers($form, &$form_state) {
   $form = array();
   $current_step = &$form_state['step'];
   $form['student_count'] = array (
@@ -163,9 +163,9 @@ function mlmta_ensemble_numbers($form, &$form_state) {
 }
 
 /**
- * Submit hook for mlmta_ensemble_numbers
+ * Submit hook for mlmta_recital_ensemble_numbers
  */
-function mlmta_ensemble_numbers_submit_hook($form, &$form_state) {
+function mlmta_recital_ensemble_numbers_submit_hook($form, &$form_state) {
   // Modify $form_state['step_information'] according to the number of students to be entered. Add accompanist and pieces at the very end
   // Modifying the number of students by going back to the first step will effectively get rid of stored_values. Deal with it!
   $student_count = $form_state['values']['student_count'];
@@ -173,11 +173,11 @@ function mlmta_ensemble_numbers_submit_hook($form, &$form_state) {
   for ($i = 2; $i < $student_count+2; $i++) {
     $j = $i-1;
     $form_state['step_information'][$i] = array(
-      'form' => 'mlmta_ensemble_student',
-      'title' => "DSF ensemble form. Student {$j}. Step {$i} of {$steps}.",
+      'form' => 'mlmta_recital_ensemble_student',
+      'title' => "Recital ensemble form. Student {$j}. Step {$i} of {$steps}.",
       'delta' => $i-2, // Delta for multivalued reference fields
-      'validation' => array('mlmta_ensemble_student_process'),
-      'submit hook' => 'mlmta_ensemble_student_submit_hook',
+      'validation' => array('mlmta_recital_ensemble_student_process'),
+      'submit hook' => 'mlmta_recital_ensemble_student_submit_hook',
     );
   }
   
@@ -188,23 +188,23 @@ function mlmta_ensemble_numbers_submit_hook($form, &$form_state) {
   
   $j = $i;
   $form_state['step_information'][$i++] = array (
-      'form' => 'mlmta_ensemble_accompanist',
-      'title' => "DSF ensemble form. Accompanist. Step {$j} of {$steps}.",
+      'form' => 'mlmta_recital_ensemble_accompanist',
+      'title' => "Recital ensemble form. Accompanist. Step {$j} of {$steps}.",
       'delta' => $i-3, // Delta for multivalued reference fields
       'validation' => array(
-        'mlmta_ensemble_accompanist_process'  // These are functions to call when any submit button is pressed (next, previous, etc)
+        'mlmta_recital_ensemble_accompanist_process'  // These are functions to call when any submit button is pressed (next, previous, etc)
       ),
-      'submit hook' => 'mlmta_ensemble_accompanist_submit_hook',    
+      'submit hook' => 'mlmta_recital_ensemble_accompanist_submit_hook',    
   );
   
   $j = $i;
   $form_state['step_information'][$i++] = array (
-    'form' => 'mlmta_ensemble_pieces',
-    'title' => "DSF ensemble form. Repertoire. Step {$j} of {$steps}.",
+    'form' => 'mlmta_recital_ensemble_pieces',
+    'title' => "Recital ensemble form. Repertoire. Step {$j} of {$steps}.",
     'validation' => array(
-      'mlmta_ensemble_pieces_process',
+      'mlmta_recital_ensemble_pieces_process',
     ),
-    'submit hook' => 'mlmta_ensemble_pieces_submit_hook',    
+    'submit hook' => 'mlmta_recital_ensemble_pieces_submit_hook',    
   );
 }
 
@@ -215,13 +215,13 @@ function mlmta_ensemble_numbers_submit_hook($form, &$form_state) {
  * @param &$form_state
  * 
  */
-function mlmta_ensemble_student ($form, &$form_state) {
+function mlmta_recital_ensemble_student ($form, &$form_state) {
 
   global $user;
   $current_user = user_load($user->uid);
   
   $form = array();
-  $form['#attached']['js'] = array(drupal_get_path('module', 'mlmta_solo_forms') . '/mlmta_solo.js');
+  //$form['#attached']['js'] = array(drupal_get_path('module', 'mlmta_recital_forms') . '/mlmta_recital_solo.js');
   $current_step = &$form_state['step'];
   
   $form['student'] = array('#tree' => TRUE, '#type' => 'container',);
@@ -251,27 +251,9 @@ function mlmta_ensemble_student ($form, &$form_state) {
     '#type' => 'select',
     '#title' => t('Instrument'),
     '#required' => TRUE,
-    '#options' => mlmta_solo_forms_instruments(),
+    '#options' => mlmta_recital_forms_instruments(),
     '#weight' => -97,
     '#default_value' => 'Piano',
-  );
-  
-  $form['student'][$delta]['theory_test'] = array(
-    '#type' => 'select',
-    '#title' => t('Theory test type'),
-    '#required' => TRUE,
-    '#options' => mlmta_solo_forms_theory_types(),
-    '#attributes' => array('class' => array('theory-test')),
-    '#weight' => -96,
-  );
-  
-  $form['student'][$delta]['theory_level'] = array(
-    '#type' => 'select',
-    '#title' => t('Theory test level'),
-    '#required' => TRUE,
-    '#options' => mlmta_solo_forms_theory_levels(),
-    '#attributes' => array('class' => array('theory-level')),
-    '#weight' => -95,
   );
   
   $student = new stdClass();
@@ -287,8 +269,6 @@ function mlmta_ensemble_student ($form, &$form_state) {
     if (!empty($form_state['pursuit'])) {
       $student = student_load($form_state['pursuit']->pursuit_student_reference['und'][$delta]['target_id']);
       $form['student'][$delta]['previous_students']['#default_value'] = $form_state['pursuit']->pursuit_student_reference['und'][$delta]['target_id'];
-      $form['student'][$delta]['theory_test']['#default_value'] = $form_state['pursuit']->field_dsf_theory_test['und'][$delta]['value'];
-      $form['student'][$delta]['theory_level']['#default_value'] = $form_state['pursuit']->field_dsf_theory_test_level['und'][$delta]['value'];
       $form['student'][$delta]['instrument']['#default_value'] = $form_state['pursuit']->field_instrument_list['und'][$delta]['value'];
     } 
   }
@@ -299,8 +279,6 @@ function mlmta_ensemble_student ($form, &$form_state) {
     // Form is being revisited
     $stored_values = &$form_state['step_information'][$current_step]['stored_values']['student'][$delta];
     $form['student'][$delta]['previous_students']['#default_value'] = $stored_values['previous_students'];
-    $form['student'][$delta]['theory_test']['#default_value'] = $stored_values['theory_test'];
-    $form['student'][$delta]['theory_level']['#default_value'] = $stored_values['theory_level'];
     $form['student'][$delta]['instrument']['#default_value'] = $stored_values['instrument'];
     $student = student_load($stored_values['previous_students']);
   }
@@ -350,7 +328,7 @@ function mlmta_ensemble_student ($form, &$form_state) {
 /**
  * Validation for student form 
  */
-function mlmta_ensemble_student_process($form, &$form_state) {
+function mlmta_recital_ensemble_student_process($form, &$form_state) {
   $current_step = $form_state['step'];
   $delta =  $form_state['step_information'][$current_step]['delta'];
   // Ajax elements will trigger this, but we only want to process if next_submit is clicked 
@@ -362,7 +340,7 @@ function mlmta_ensemble_student_process($form, &$form_state) {
 /**
  * Submit hook for student 
  */
-function mlmta_ensemble_student_submit_hook($form, &$form_state) {
+function mlmta_recital_ensemble_student_submit_hook($form, &$form_state) {
   // This hook will create a family tag and a new teacher
   $current_step = $form_state['step'];
   $delta =  $form_state['step_information'][$current_step]['delta'];
@@ -371,7 +349,7 @@ function mlmta_ensemble_student_submit_hook($form, &$form_state) {
 /**
  * Form builder for accompanist
  */
-function mlmta_ensemble_accompanist($form, &$form_state) {
+function mlmta_recital_ensemble_accompanist($form, &$form_state) {
 
   global $user;
 
@@ -498,7 +476,7 @@ function mlmta_ensemble_accompanist($form, &$form_state) {
 /**
  * Validation for accompanist form 
  */
-function mlmta_ensemble_accompanist_process($form, &$form_state) {
+function mlmta_recital_ensemble_accompanist_process($form, &$form_state) {
   // Ajax elements will trigger this, but we only want to process if next_submit is clicked 
   if ($form_state['triggering_element']['#type'] == 'submit' && !empty($form_state['values']['accompanist']['student_fieldset']['student_first_name']['und'][0]['value'])) {
     
@@ -508,35 +486,20 @@ function mlmta_ensemble_accompanist_process($form, &$form_state) {
 /**
  * Submit hook for accompanist
  */
-function mlmta_ensemble_accompanist_submit_hook($form, &$form_state) {
+function mlmta_recital_ensemble_accompanist_submit_hook($form, &$form_state) {
   
 
 }
 /**
  * Form builder for pieces
  */
-function mlmta_ensemble_pieces($form, &$form_state) {
+function mlmta_recital_ensemble_pieces($form, &$form_state) {
 
   $current_step = &$form_state['step'];
   $form['#validate'] = $form_state['step_information'][$current_step]['validation'];
   
-  $pursuit_temp = empty($form_state['pursuit']) ? entity_create('pursuit', array('type'=>'vocal_ensemble_performance')) : $form_state['pursuit'];
+  $pursuit_temp = empty($form_state['pursuit']) ? entity_create('pursuit', array('type'=>'recital_ensemble')) : $form_state['pursuit'];
   
-  //$form_temp = array();
-  //field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_vocal_ensemble_level'));
-  //$form['field_vocal_ensemble_level'] = $form_temp['field_vocal_ensemble_level'];
-  //$form['field_vocal_ensemble_level']['#weight'] = -1;
-  
-  $form_temp = array();
-  // Attach preferred time to form
-  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'pursuit_preferred_time'));
-  // Get rid of options not needed for the solo
-  //unset($form_temp['pursuit_preferred_time']['und']['#options']['am']);
-  //unset($form_temp['pursuit_preferred_time']['und']['#options']['eam']);
-  //unset($form_temp['pursuit_preferred_time']['und']['#options']['lam']);
-  //unset($form_temp['pursuit_preferred_time']['und']['#options']['pm']);
-  $form['pursuit_preferred_time'] = $form_temp['pursuit_preferred_time'];
-  $form['pursuit_preferred_time']['#weight'] = 50;
   
   $form_temp = array();
   // Attach level to form
@@ -558,56 +521,14 @@ function mlmta_ensemble_pieces($form, &$form_state) {
       '#weight' => -99,
     ),
   );
-  
-  $form['pieces']['piece2_fieldset'] = array(
-    '#tree' => TRUE,
-    '#title' => t('Piece 2'),
-    '#type' => 'fieldset',
-    '#weight' => 2,
-    'title' => array(
-      '#type' => 'textfield',
-      '#title' => 'Title',
-      '#description' => t('Enter the title, key, opus number and movement. E.g. "Sonatina in C major, Op. 36 No. 1. Movement 1."'),
-      '#weight' => -99,
-      '#required' => TRUE,
-    ),
-  );
-  //
-  //$form['pieces']['piece3_fieldset'] = array(
-  //  '#tree' => TRUE,
-  //  '#title' => t('Piece 3'),
-  //  '#type' => 'fieldset',
-  //  '#weight' => 3,
-  //  'title' => array(
-  //    '#type' => 'textfield',
-  //    '#title' => 'Title',
-  //    '#description' => t('OPTIONAL. Enter the title, key, opus number and movement.'),
-  //    '#weight' => -99,
-  //  ),
-  //);
-  //
-  //$form['pieces']['piece4_fieldset'] = array(
-  //  '#tree' => TRUE,
-  //  '#title' => t('Piece 4'),
-  //  '#type' => 'fieldset',
-  //  '#weight' => 4,
-  //  'title' => array(
-  //    '#type' => 'textfield',
-  //    '#title' => 'Title',
-  //    '#description' => t('OPTIONAL. Enter the title, key, opus number and movement.'),
-  //    '#weight' => -99,
-  //  ),
-  //);
-
 
   $piece_array = array();
-  for ($i = 0; $i<2; $i++) {
+  for ($i = 0; $i<1; $i++) {
     $piece_array[$i] = entity_create('piece', array('type' => 'basic_piece'));
   }
   if (!empty($form_state['pursuit'])) {
     // Editing an existing one!
     $pursuit_wrapper = entity_metadata_wrapper('pursuit', $form_state['pursuit']);
-    // $form['field_vocal_ensemble_level']['und']['#default_value'] = $pursuit_wrapper->field_vocal_ensemble_level->value();
 
     $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->pursuit_preferred_time['und']) ?
     $form_state['pursuit']->pursuit_preferred_time['und'][0]['value'] : '_none' ;
@@ -626,10 +547,7 @@ function mlmta_ensemble_pieces($form, &$form_state) {
     $fs = "piece{$i}_fieldset";
     field_attach_form('piece', $piece, $form_temp, $form_state);
     unset($form_temp['#parents']);
-    //if ($delta>1) {
-    //  $form_temp['piece_composer']['und']['#required'] = FALSE;
-    //  $form_temp['piece_duration']['und'][0]['value']['#required'] = FALSE;  
-    //}
+
     $form['pieces'][$fs] = $form['pieces'][$fs] + $form_temp;
   }
 
@@ -643,27 +561,12 @@ function mlmta_ensemble_pieces($form, &$form_state) {
     $form['pieces']['piece1_fieldset']['piece_composer'][LANGUAGE_NONE]['#default_value'] = $stored_values['pieces']['piece1_fieldset']['piece_composer']['und'][0]['name'];
     $form['pieces']['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['pieces']['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     
-    $form['pieces']['piece2_fieldset']['title']['#default_value'] = $stored_values['pieces']['piece2_fieldset']['title'];
-    $form['pieces']['piece2_fieldset']['piece_composer'][LANGUAGE_NONE]['#default_value'] = $stored_values['pieces']['piece2_fieldset']['piece_composer']['und'][0]['name'];
-    $form['pieces']['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['pieces']['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
-    
-    //if (!empty($stored_values['pieces']['piece3_fieldset']['piece_composer'][LANGUAGE_NONE])){
-    //  $form['pieces']['piece3_fieldset']['title']['#default_value'] = $stored_values['pieces']['piece3_fieldset']['title'];
-    //  $form['pieces']['piece3_fieldset']['piece_composer'][LANGUAGE_NONE]['#default_value'] = $stored_values['pieces']['piece3_fieldset']['piece_composer']['und'][0]['name'];
-    //  $form['pieces']['piece3_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['pieces']['piece3_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];  
-    //}
-    //
-    //if (!empty($stored_values['pieces']['piece4_fieldset']['piece_composer'][LANGUAGE_NONE])){
-    //  $form['pieces']['piece4_fieldset']['title']['#default_value'] = $stored_values['pieces']['piece4_fieldset']['title'];
-    //  $form['pieces']['piece4_fieldset']['piece_composer'][LANGUAGE_NONE]['#default_value'] = $stored_values['pieces']['piece4_fieldset']['piece_composer']['und'][0]['name'];
-    //  $form['pieces']['piece4_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['pieces']['piece4_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];  
-    //}
     
     unset($form_state['input']['field_piano_solo_level']);
     $form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
     
-    unset($form_state['input']['pursuit_preferred_time']);
-    $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['pursuit_preferred_time'][LANGUAGE_NONE][0]['value'];
+    //unset($form_state['input']['pursuit_preferred_time']);
+    //$form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['pursuit_preferred_time'][LANGUAGE_NONE][0]['value'];
   }
 
   $form_state['visited'] = FALSE;
@@ -674,7 +577,7 @@ function mlmta_ensemble_pieces($form, &$form_state) {
 /**
  *  Validation for pieces
  */
-function mlmta_ensemble_pieces_process($form, &$form_state) {
+function mlmta_recital_ensemble_pieces_process($form, &$form_state) {
   //if(!empty($form_state['values']['pieces']['piece3_fieldset']['title'])) {
   //  if(empty($form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und'])) {
   //    form_set_error('piece][piece3_fieldset][piece_composer', t('Enter a composer for piece 3'));
@@ -697,7 +600,7 @@ function mlmta_ensemble_pieces_process($form, &$form_state) {
 /**
  * Submit hook for pieces
  */
-function mlmta_ensemble_pieces_submit_hook($form, &$form_state) {
+function mlmta_recital_ensemble_pieces_submit_hook($form, &$form_state) {
   // Creates taxonomy terms for new composers
   if ($form_state['values']['pieces']['piece1_fieldset']['piece_composer']['und'][0]['tid'] == 'autocreate') {
     unset($form_state['values']['pieces']['piece1_fieldset']['piece_composer']['und'][0]['tid']);
@@ -705,31 +608,12 @@ function mlmta_ensemble_pieces_submit_hook($form, &$form_state) {
     taxonomy_term_save($term);
     $form_state['values']['pieces']['piece1_fieldset']['piece_composer']['und'][0]['tid'] = $term->tid;
   }
-  if ($form_state['values']['pieces']['piece2_fieldset']['piece_composer']['und'][0]['tid'] == 'autocreate') {
-    unset($form_state['values']['pieces']['piece2_fieldset']['piece_composer']['und'][0]['tid']);
-    $term = (object) $form_state['values']['pieces']['piece2_fieldset']['piece_composer']['und'][0];
-    taxonomy_term_save($term);
-    $form_state['values']['pieces']['piece2_fieldset']['piece_composer']['und'][0]['tid'] = $term->tid;
-  }
-  //if (!empty($form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und']) && $form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und'][0]['tid'] == 'autocreate') {
-  //  unset($form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und'][0]['tid']);
-  //  $term = (object) $form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und'][0];
-  //  taxonomy_term_save($term);
-  //  $form_state['values']['pieces']['piece3_fieldset']['piece_composer']['und'][0]['tid'] = $term->tid;
-  //}
-  //
-  //if (!empty($form_state['values']['pieces']['piece4_fieldset']['piece_composer']['und']) && $form_state['values']['pieces']['piece4_fieldset']['piece_composer']['und'][0]['tid'] == 'autocreate') {
-  //  unset($form_state['values']['pieces']['piece4_fieldset']['piece_composer']['und'][0]['tid']);
-  //  $term = (object) $form_state['values']['pieces']['piece4_fieldset']['piece_composer']['und'][0];
-  //  taxonomy_term_save($term);
-  //  $form_state['values']['pieces']['piece4_fieldset']['piece_composer']['und'][0]['tid'] = $term->tid;
-  //}
 }
 
 /**
  * Submit handler
  */
-function mlmta_ensemble_form_submit($form, &$form_state) {
+function mlmta_recital_ensemble_form_submit($form, &$form_state) {
   $current_step = &$form_state['step'];
   if (!empty($form_state['step_information'][$current_step]['submit hook'])) {
     $form_state['step_information'][$current_step]['submit hook']($form, $form_state);
@@ -755,8 +639,7 @@ function mlmta_ensemble_form_submit($form, &$form_state) {
    // Get teacher  id
     $teacher_ids[$delta]= $stored_values['previous_teachers'];
     $instruments[$delta] = $stored_values['instrument'];
-    $theory_tests[$delta] = $stored_values['theory_test'];
-    $theory_levels[$delta] = $stored_values['theory_level'];
+
   }
  
   // Create and save accompanist if needed
@@ -789,8 +672,8 @@ function mlmta_ensemble_form_submit($form, &$form_state) {
     }
   }
   
-  // Get value for preferred time
-  $preferred_time = $form_state['step_information'][$pieces_step]['stored_values']['pursuit_preferred_time']['und'][0]['value'];
+  //// Get value for preferred time
+  //$preferred_time = $form_state['step_information'][$pieces_step]['stored_values']['pursuit_preferred_time']['und'][0]['value'];
 
   // Get value for preferred time
   $level = $form_state['step_information'][$pieces_step]['stored_values']['field_piano_solo_level']['und'][0]['value'];
@@ -799,22 +682,18 @@ function mlmta_ensemble_form_submit($form, &$form_state) {
   if(!empty($form_state['pursuit'])) {
     $pursuit = pursuit_load($form_state['pursuit']->pursuit_id);
   } else {
-    $pursuit = entity_create('pursuit', array('type' => 'vocal_ensemble_performance'));
+    $pursuit = entity_create('pursuit', array('type' => 'recital_ensemble'));
   }
   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
   $pursuit_wrapper->pursuit_student_reference = NULL;
   $pursuit_wrapper->field_instrument_list = array();
-  $pursuit_wrapper->field_dsf_theory_test = array();
-  $pursuit_wrapper->field_dsf_theory_test_level = array();
-  //$pursuit_wrapper->field_piano_solo_level = NULL;
+  $pursuit_wrapper->field_piano_solo_level = '';
   $pursuit_wrapper->pursuit_teacher_reference = NULL;
   
   foreach($student_ids as $delta => $student_id) {
     $pursuit_wrapper->pursuit_student_reference[$delta] = $student_id;
     $pursuit_wrapper->pursuit_teacher_reference[$delta] = $teacher_ids[$delta];
     $pursuit_wrapper->field_instrument_list[$delta] = $instruments[$delta];
-    $pursuit_wrapper->field_dsf_theory_test[$delta] = $theory_tests[$delta];
-    $pursuit_wrapper->field_dsf_theory_test_level[$delta] = $theory_levels[$delta];
   }
   
   if(!empty($accompanist_id)) {
@@ -831,10 +710,10 @@ function mlmta_ensemble_form_submit($form, &$form_state) {
     $pursuit_wrapper->pursuit_piece_reference[$delta]->set($piece->piece_id);
   }
 
-  $pursuit_wrapper->pursuit_preferred_time->set($preferred_time);
+  //$pursuit_wrapper->pursuit_preferred_time->set($preferred_time);
   $pursuit_wrapper->field_piano_solo_level->set($level);
   //$pursuit_wrapper->field_judged_accompanist = $form_state['step_information'][$accompanist_step]['stored_values']['accompanist']['judged_accompanist'];
-  $pursuit_wrapper->field_event_reference->set(variable_get('tenuto_solo_event', NULL)); // solo because this is part of the DSF event, which has the same info
+  $pursuit_wrapper->field_event_reference->set(variable_get('tenuto_recital_event', NULL)); // solo because this is part of the DSF event, which has the same info
   
   pursuit_update_name($pursuit);
   pursuit_update_duration($pursuit);
@@ -844,38 +723,7 @@ function mlmta_ensemble_form_submit($form, &$form_state) {
   // IF this pursuit is new then add to commerce cart
   
   if (empty($form_state['pursuit'])) {
-    $products = array('duet', 'trio', 'quartet');
-    $product_sku = $products[$student_count-2];
-    pursuit_add_to_shopping_cart(array($pursuit), $product_sku);
-    //if (isset($pursuit_wrapper->field_judged_accompanist) && $pursuit_wrapper->field_judged_accompanist->value() == 1) {
-    //  pursuit_add_to_shopping_cart(array($pursuit), 'accompanist');
-    //}
-  } /*elseif (isset($pursuit_wrapper->field_judged_accompanist)) {
-    $original_pursuit_wrapper = entity_metadata_wrapper('pursuit', $form_state['original_pursuit']);
-    if ($pursuit_wrapper->field_judged_accompanist->value() != $original_pursuit_wrapper->field_judged_accompanist->value()) {
-      if ($pursuit_wrapper->field_judged_accompanist->value() == 1) {
-        pursuit_add_to_shopping_cart(array($pursuit), 'accompanist');
-      } else {
-        $accompanist_product = commerce_product_load_by_sku('accompanist');
-        $accompanist_product_id = $accompanist_product->product_id;
-        
-        // Delete the accompanist product from the cart
-        $query = new EntityFieldQuery();
-        $query->entityCondition('entity_type', 'commerce_line_item')
-              ->propertyCondition('order_id', $pursuit_wrapper->pursuit_order_reference->getIdentifier())
-              ->fieldCondition('field_pursuit_reference', 'target_id', $pursuit_wrapper->getIdentifier())
-              ->fieldCondition('commerce_product', 'product_id', $accompanist_product_id);  
-        $result = $query->execute();
-        $ids = !empty($result['commerce_line_item']) ? array_keys($result['commerce_line_item']) : array();
-        foreach ($ids as $id) {
-          $li = commerce_line_item_load($id);
-          commerce_cart_order_product_line_item_delete($pursuit_wrapper->pursuit_order_reference->value(), $id);
-        }
-
-      }
-    }
-  }*/
-  
-  // All of the above is not necessary since we are not adding accompanist products to cart or making them judged
+    pursuit_add_to_shopping_cart(array($pursuit), 'recital');
+  } 
 }
 

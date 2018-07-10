@@ -1,1 +1,69 @@
 <?php
+
+/**
+ * @file
+ * Functions to generate the general CSV report for MLMTA DSF festival to send to the state level 
+ */
+/**
+ * Implements hook_menu().
+ */
+function mlmta_solo_dsf_report_menu() {
+  $items['dsf-csv-report'] = array(
+    'page callback' => 'mlmta_solo_dsf_report_page',
+    'access arguments' => array('edit any pursuit entities'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Generates an array from a view and outputs it as a CSV file
+ */
+function mlmta_solo_dsf_report_page() {
+  $view = views_get_view('pursuits_for_dsf_report');
+  $arguments = variable_get('tenuto_solo_event', NULL);
+  $view->set_arguments(array($arguments));
+  $view->execute();
+  $result = $view->result;
+  
+  $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
+  
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-dsf-report.csv"');
+  
+  //instead of writing down to a file we write to the output stream
+  $fh = fopen('php://output', 'w');
+  
+  $csv_header = array(
+    'Student last name',
+    'Student first name',
+    'Overall rating',
+    'Theory score level',
+    'Solo-Ensemble',
+    'Teacher'
+  );
+  
+  fputcsv($fh, $csv_header);
+  foreach ($result as $row_index => $row) {
+    $csv_row = array();
+    $csv_row[] = $view->render_field('student_last_name', $row_index);
+    $csv_row[] = $view->render_field('student_first_name', $row_index);
+    $csv_row[] = '';
+    $csv_row[] = ''; // Empty, to be filled by user after download
+    $type = $view->render_field('type', $row_index);
+    $csv_row[] = scheduling_bundle_label('pursuit', $type);
+    
+    // Get the teacher that corresponds to this student's delta
+    $student_delta = $view->render_field('delta', $row_index);
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $teacher = $teacher_items[$student_delta]['raw']['entity'];
+    $teacher_wrapper = entity_metadata_wrapper('teacher', $teacher);
+    $teacher_last_name = $teacher_wrapper->teacher_last_name->value();
+    $teacher_first_name = $teacher_wrapper->teacher_first_name->value();
+    $csv_row[] = $teacher_last_name.', '. $teacher_first_name;
+    fputcsv($fh, $csv_row);
+  }
+  
+  drupal_exit();
+}

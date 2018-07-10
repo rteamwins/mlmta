@@ -1,0 +1,143 @@
+<?php
+
+/**
+ * @file
+ * Functions to generate PDF of DSF theory tests and levels
+ */
+
+/**
+ * Implements hook_menu().
+ */
+
+function mlmta_solo_dsf_theory_report_menu() {
+  $items['admin/pdf-dsf-theory-report-dsf'] = array(
+    'page callback' => 'mlmta_solo_dsf_theory_report_entry',
+    'access arguments' => array('edit any pursuit entities'),
+    'type' => MENU_CALLBACK,
+    'title'=>'DSF theory report',
+  );
+  
+  $items['admin/pdf-dsf-theory-report-dsf/tally'] = array(
+    'page callback' => 'mlmta_solo_dsf_theory_report_tally',
+    'access arguments' => array('edit any pursuit entities'),
+    'type' => MENU_CALLBACK,
+    'title'=>'DSF theory tally',
+  );
+  return $items;
+}
+
+/**
+ * Entry point to generate PDF of DSF theory tests and levels
+ */
+function mlmta_solo_dsf_theory_report_entry() {
+   
+  $result = _mlmta_solo_dsf_theory_report_query();
+  $results = $result->fetchAll();
+  $header = array('Name', 'Teacher', 'Theory Test', 'Theory Level');
+  $rows = array();
+  $tally = array();
+  foreach ($results as $row) {
+    $cell = array();
+    $cell['name'] = $row->name;
+    $cell['teacher'] = $row->teacher_name;
+    $cell['theory_test'] = $row->field_dsf_theory_test_value;
+    $cell['theory_level'] = $row->field_dsf_theory_test_level_value;
+    $rows[] = $cell;
+    
+  }
+  $output = theme('table', array('header'=>$header, 'rows' => $rows));
+  $output .= '<a href="/page-as-pdf/admin/pdf-dsf-theory-report-dsf">PDF</a>';
+  return $output;
+}
+
+/**
+ * Generates a tally of tests
+ */
+function mlmta_solo_dsf_theory_report_tally() {
+  $result = _mlmta_solo_dsf_theory_report_query();
+  $results = $result->fetchAll();
+  $header = array('Test', 'Level', 'Number');
+  $rows = array();
+  $tally = array();
+  foreach ($results as $row) {
+    $tally[$row->field_dsf_theory_test_value][$row->field_dsf_theory_test_level_value] = isset($tally[$row->field_dsf_theory_test_value][$row->field_dsf_theory_test_level_value]) ? $tally[$row->field_dsf_theory_test_value][$row->field_dsf_theory_test_level_value] + 1 : 1;
+  }
+  foreach ($tally as $test => $level) {
+    ksort($tally[$test]);
+  }
+  ksort($tally);
+  foreach ($tally as $test => $level) {
+    foreach ($level as $level_label => $number) {
+      $cell = array();
+      $cell['test'] = $test;
+      $cell['level'] = $level_label;
+      $cell['number'] = $number;
+      $rows[] = $cell;      
+    }
+  }
+    
+  $output = theme('table', array('header'=>$header, 'rows' => $rows));
+  $output .= '<a href="/page-as-pdf/admin/pdf-dsf-theory-report-dsf/tally">PDF</a>';
+  
+  return $output;
+}
+
+/**
+ * Helper
+ */
+function _mlmta_solo_dsf_theory_report_query() {
+ return db_query("           
+    SELECT pursuit.title AS title, pursuit.pursuit_id AS pursuit_id, pursuit_student.pursuit_student_reference_target_id AS pursuit_student_reference_target_id, pursuit_student.delta AS delta, student.name AS name, student.student_id AS student_id, student_last_name.student_last_name_value AS student_last_name_value, theory_test.field_dsf_theory_test_value AS field_dsf_theory_test_value, theory_test_level.field_dsf_theory_test_level_value AS field_dsf_theory_test_level_value, pursuit_teacher.pursuit_teacher_reference_target_id AS pursuit_teacher_reference_target_id, teacher.name AS teacher_name
+    FROM 
+    {pursuit} pursuit
+    INNER JOIN {field_data_pursuit_order_paid} pursuit_order_paid ON pursuit_order_paid.entity_id = pursuit_id AND pursuit_order_paid.pursuit_order_paid_value = 1
+    INNER JOIN {field_data_field_event_reference} pursuit_event ON pursuit_event.entity_id = pursuit.pursuit_id AND pursuit_event.field_event_reference_target_id = :event_id AND pursuit_event.entity_type = :type
+    INNER JOIN {field_data_pursuit_student_reference} pursuit_student ON pursuit_student.entity_id = pursuit.pursuit_id AND pursuit_student.entity_type = :type
+    INNER JOIN {student} student ON student.student_id = pursuit_student. pursuit_student_reference_target_id
+    INNER JOIN {field_data_student_last_name} student_last_name ON student_last_name.entity_id = student.student_id AND student_last_name.entity_type = :studenttype
+    INNER JOIN {field_data_field_dsf_theory_test} theory_test ON theory_test.entity_type = :type AND theory_test.entity_id = pursuit.pursuit_id AND theory_test.delta = pursuit_student.delta
+    INNER JOIN {field_data_field_dsf_theory_test_level} theory_test_level ON theory_test_level.entity_type = :type AND theory_test_level.entity_id = pursuit.pursuit_id AND theory_test_level.delta = pursuit_student.delta
+    INNER JOIN {field_data_pursuit_teacher_reference} pursuit_teacher ON pursuit_teacher.entity_id = pursuit_id AND pursuit_teacher.entity_type = :type AND pursuit_teacher.delta = pursuit_student.delta
+    INNER JOIN {teacher} teacher ON teacher.teacher_id = pursuit_teacher.pursuit_teacher_reference_target_id
+    ORDER BY student_last_name.student_last_name_value ASC                 
+  ", array(
+      ':event_id' => variable_get('tenuto_solo_event'),
+      ':type' => 'pursuit',
+      ':studenttype' => 'student',
+   )
+  );
+// Query db
+//  $q = db_select('pursuit');
+//  $q->fields('pursuit', array('title', 'pursuit_id'));
+//
+//  $q->join('field_data_pursuit_order_paid', 'pursuit_order_paid', 'pursuit_order_paid.entity_id = pursuit_id AND pursuit_order_paid.pursuit_order_paid_value = 1');
+//
+//  $q->join('field_data_field_event_reference', 'pursuit_event', 'pursuit_event.entity_id = pursuit.pursuit_id AND pursuit_event.field_event_reference_target_id = :event_id AND pursuit_event.entity_type = :type', array(':event_id' => variable_get('tenuto_solo_event'), ':type' => 'pursuit'));
+//
+//  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit.pursuit_id AND pursuit_student.entity_type = :type', array(':type' => 'pursuit'));
+//  $q->fields('pursuit_student', array('pursuit_student_reference_target_id', 'delta'));
+//
+//  $q->join('student', 'student', 'student.student_id = pursuit_student. pursuit_student_reference_target_id');
+//  $q->fields('student', array('name', 'student_id'));
+//  
+//  $q->join('field_data_student_last_name','student_last_name', 'student_last_name.entity_id = student.student_id AND student_last_name.entity_type = :studenttype', array(':studenttype'=> 'student'));
+//  $q->fields('student_last_name', array('student_last_name_value'));
+//
+//  $q->join('field_data_field_dsf_theory_test', 'theory_test', 'theory_test.entity_type = :type AND theory_test.entity_id = pursuit.pursuit_id AND theory_test.delta = pursuit_student.delta', array(':type' => 'pursuit'));
+//  $q->fields('theory_test', array('field_dsf_theory_test_value'));
+//
+//  $q->join('field_data_field_dsf_theory_test_level', 'theory_test_level', 'theory_test_level.entity_type = :type AND theory_test_level.entity_id = pursuit.pursuit_id AND theory_test_level.delta = pursuit_student.delta', array(':type' => 'pursuit'));
+//  $q->fields('theory_test_level', array('field_dsf_theory_test_level_value'));
+//
+//$q->join('field_data_pursuit_teacher_reference', 'pursuit_teacher', 'pursuit_teacher.entity_id = pursuit_id AND pursuit_teacher.entity_type = :type AND pursuit_teacher.delta = pursuit_student.delta', array(':type' => 'pursuit'));
+//$q->fields('pursuit_teacher', array('pursuit_teacher_reference_target_id'));
+//$q->join('teacher', 'teacher', 'teacher.teacher_id = pursuit_teacher.pursuit_teacher_reference_target_id');
+//$q->fields('teacher', array('name'));
+//
+//$q->orderBy('student_last_name.student_last_name_value');
+//
+//$r = $q->execute();
+//dpm($r->fetchAll());
+//dpm($q->__toString());
+//dpm($q->arguments());
+}

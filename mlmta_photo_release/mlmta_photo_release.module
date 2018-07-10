@@ -1,0 +1,131 @@
+<?php
+
+/**
+ * @file
+ *  Produces a PDF with a photo release table for parent signature
+ */
+
+/**
+ * Implements hook_menu()
+ */
+function mlmta_photo_release_menu() {
+  $items['pdf-photo-release'] = array(
+    'title' => 'Photo release form',
+    'description' => 'Produces a PDF for release signatures',
+    'page callback' => 'mlmta_photo_release_entry',
+    'access arguments' => array('edit any pursuit entities'),
+  );
+  return $items;
+}
+
+/**
+ * Entry point for release form
+ */
+function mlmta_photo_release_entry() {
+  $result = db_query("           
+    SELECT pursuit.title AS title, pursuit.pursuit_id AS pursuit_id, MIN(pursuit_student.pursuit_student_reference_target_id) AS pursuit_student_reference_target_id, student.name AS name, student.student_id AS student_id, student_last_name.student_last_name_value AS student_last_name_value, student_first_name.student_first_name_value AS student_first_name_value
+    FROM 
+    {pursuit} pursuit
+    INNER JOIN {field_data_pursuit_order_paid} pursuit_order_paid ON pursuit_order_paid.entity_id = pursuit_id AND pursuit_order_paid.pursuit_order_paid_value = 1
+    INNER JOIN {field_data_field_event_reference} pursuit_event ON pursuit_event.entity_id = pursuit.pursuit_id AND pursuit_event.field_event_reference_target_id = :event_id AND pursuit_event.entity_type = :type
+    INNER JOIN {field_data_pursuit_student_reference} pursuit_student ON pursuit_student.entity_id = pursuit.pursuit_id AND pursuit_student.entity_type = :type
+    INNER JOIN {student} student ON student.student_id = pursuit_student. pursuit_student_reference_target_id
+    INNER JOIN {field_data_student_last_name} student_last_name ON student_last_name.entity_id = student.student_id AND student_last_name.entity_type = :studenttype
+    INNER JOIN {field_data_student_first_name} student_first_name ON student_first_name.entity_id = student.student_id AND student_first_name.entity_type = :studenttype
+    GROUP BY student_last_name.student_last_name_value
+    ORDER BY student_last_name.student_last_name_value ASC
+
+  ", array(
+      ':event_id' => event_switch_get_active_event(),
+      ':type' => 'pursuit',
+      ':studenttype' => 'student',
+   )
+  );
+  
+  $results = $result->fetchAll();
+  
+  //  $q = db_select('pursuit');
+  //  $q->fields('pursuit', array('title', 'pursuit_id'));
+  //
+  //  $q->join('field_data_pursuit_order_paid', 'pursuit_order_paid', 'pursuit_order_paid.entity_id = pursuit_id AND pursuit_order_paid.pursuit_order_paid_value = 1');
+  //
+  //  $q->join('field_data_field_event_reference', 'pursuit_event', 'pursuit_event.entity_id = pursuit.pursuit_id AND pursuit_event.field_event_reference_target_id = :event_id AND pursuit_event.entity_type = :type', array(':event_id' => event_switch_get_active_event(), ':type' => 'pursuit'));
+  //
+  //  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit.pursuit_id AND pursuit_student.entity_type = :type', array(':type' => 'pursuit'));
+  //  $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
+  //
+  //  $q->join('student', 'student', 'student.student_id = pursuit_student. pursuit_student_reference_target_id');
+  //  $q->fields('student', array('name', 'student_id'));
+  //  
+  //  $q->join('field_data_student_last_name','student_last_name', 'student_last_name.entity_id = student.student_id AND student_last_name.entity_type = :studenttype', array(':studenttype'=> 'student'));
+  //  $q->fields('student_last_name', array('student_last_name_value'));
+  //
+  //  $q->join('field_data_student_first_name','student_first_name', 'student_first_name.entity_id = student.student_id AND student_first_name.entity_type = :studenttype', array(':studenttype'=> 'student'));
+  //  $q->fields('student_first_name', array('student_first_name_value'));
+  //
+  //$q->orderBy('student_last_name.student_last_name_value');
+  
+  $event = event_load(event_switch_get_active_event());
+  $event_wrapper = entity_metadata_wrapper('event', $event);
+  $date_unix = $event_wrapper->field_event_date->value();
+  $date = format_date($date_unix, 'custom', 'M d, Y');
+  $location = nl2br($event_wrapper->field_event_location->value());
+  $intro_text = "
+<h2>PHOTO AND VIDEO AUTHORIZATION AND RELEASE FORM</h2>
+<table width=\"100%\" border=\"1\" cellpadding=\"4\">
+<tr><td width=\"50%\">Local Association: MLMTA</td><td>Event Name: {$event->title}</td></tr>
+<tr><td width=\"50%\">Event Date: $date</td><td width=\"50%\">Event Location: $location</td></tr> 
+</table>
+<h3>By Signing Below</h3>
+(Parent, Guardian or Student 18 and older only)
+<ol>
+<li>I grant permission to the above Music Teachers Association, on behalf of the child/entrant, for the use of photos and/or videos taken during this event for the Association's website, Facebook page, and/or YouTube channel for the purpose of educational announcement.</li>
+<li>I also grant permission to print the name of the child/entrant on the Association's website, and the first name with last name initial only on the Association's Facebook page and YouTube channel for the purpose of educational announcement.</li>
+<li>I agree to indemnify, release or hold harmless the above association, its agents or representatives, from any claims or causes of action arising or related in any respect to the event or the child's/entrant's participation in this event.</li></ol>
+";
+
+  $header = array('Last name', "First name", "Authorized signature of permission", "Comment");
+  $rows = array();
+  foreach($results as $db_row) {
+    $cell = array();
+    $cell['last_name'] = $db_row->student_last_name_value;
+    $cell['first_name'] = $db_row->student_first_name_value;
+    $cell[] = '';
+    $cell[] = '';
+    $rows[] = array('data' => $cell, 'no_striping' => TRUE,);
+  }
+
+  $table = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'sticky'=>FALSE,
+    'attributes' => array('border' => 1, 'cellpadding' => 4),
+  )
+  );
+  
+  $output = $intro_text . '<p>&nbsp;</p>' . $table;
+  //dpm($output);
+  //return $output;
+  $pdf = new NORMALPDF('P','mm', 'LETTER');
+  $pdf->SetAutoPageBreak(true, 25);
+  $pdf->setFontSubsetting(false);
+  // set header and footer fonts
+  $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+  $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+  
+  // set default monospaced font
+  $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+  
+  // set margins
+  $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+  $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+  $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+  $pdf->AddPage();
+  $pdf->writeHTML($output);
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment;filename="MLMTA-photo-release-form.pdf"');
+  $out = $pdf->Output('tempo.pdf', 'I');
+  echo $out;
+  flush();
+  drupal_exit();
+}
