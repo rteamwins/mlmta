@@ -28,7 +28,7 @@
         }));
       for (var i=0; i<= level; i++) {
         $(".theory-level").append($('<option>',{
-          value: i,
+          value: levels[i],
           text: levels[i],
         }));
       }
