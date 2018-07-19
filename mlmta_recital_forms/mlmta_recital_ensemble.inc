@@ -306,7 +306,6 @@ function mlmta_recital_ensemble_student ($form, &$form_state) {
     '#options' => _mlmta_teacher_build_list('basic_teacher'),
     '#required'=>TRUE,
     '#weight' => 64,
-    '#size' => '100',
   );
   
   if (!empty($form_state['pursuit'])) {

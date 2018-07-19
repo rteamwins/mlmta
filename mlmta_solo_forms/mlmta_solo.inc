@@ -240,7 +240,7 @@ function mlmta_piano_solo_student($form, &$form_state) {
     //  'wrapper' => 'teacher-1-fieldset',
     //),
     '#weight' => 64,
-    '#size' => '100',
+
   );
   
 
