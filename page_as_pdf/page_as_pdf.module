@@ -86,7 +86,7 @@ function page_as_pdf_entry() {
   $pdf->lastPage();  
   $out = $pdf->Output('tempo.pdf', 'I');
   header('Content-Type: application/pdf');
-  header('Content-Disposition: attachment;filename="MLMTA-'.$node->title.'-'.$node->active_event.'.pdf"');
+  header('Content-Disposition: attachment;filename="Registered-students-'.$node->title.'-'.$node->active_event.'.pdf"');
   echo $out;
   flush();
   exit();

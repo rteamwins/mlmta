@@ -135,8 +135,13 @@ function mlmta_recital_ensemble_numbers($form, &$form_state) {
     '#title' => 'Number of performers',
     '#description' => 'Enter the number of performers in this ensemble (minimum 2)',
     '#type' => 'select',
-    '#options' => drupal_map_assoc(array  (2, 3, 4,)),
-    '#default_value' => 2,
+    '#options' => array(
+      1 =>'One student and one accompanist (not judged)',
+      2 => 'Two students and an optional accompanist',
+      3 => 'Three students and an optional accompanist',
+      4 => 'Four students and an optional accompanist',
+    ),
+    '#default_value' => 1,
     '#required' => TRUE,
   );
   
@@ -722,7 +727,21 @@ function mlmta_recital_ensemble_form_submit($form, &$form_state) {
   // IF this pursuit is new then add to commerce cart
   
   if (empty($form_state['pursuit'])) {
-    pursuit_add_to_shopping_cart(array($pursuit), 'recital');
+    switch ($student_count) {
+      case 1:
+        $sku = 'recital';
+        break;
+      case 2:
+        $sku = 'recital-duo';
+        break;
+      case 3:
+        $sku = 'recital-trio';
+        break;
+      case 4:
+        $sku = 'recital-quartet';
+        break;
+    }
+    pursuit_add_to_shopping_cart(array($pursuit), $sku);
   } 
 }
 
