@@ -245,6 +245,21 @@ function mlmta_recital_forms_configuration_form($form, &$form_state) {
       '#default_value' => variable_get('tenuto_recital_event',NULL),
     );
   }
+
+  $form['tenuto_recital_chair_name'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Chair name',
+    '#description' => 'Enter the name of the event chair. For more than one chair, separate names with commas.',
+    '#default_value' => variable_get('tenuto_recital_chair_name', NULL),
+  );
+  
+  $form['tenuto_recital_chair_email_address'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Chair email',
+    '#description' => 'Enter the email address of the event chair. For more than one chair, separate email with commas.',
+    '#default_value' => variable_get('tenuto_recital_chair_email_address', NULL),
+  );
+  
   $form['location_fieldset'] = array(
     '#type' => 'fieldset',
     '#title' => t('Location'),
@@ -336,6 +351,9 @@ function mlmta_recital_forms_configuration_form_submit($form, &$form_state) {
   variable_set('tenuto_recital_event_location', $form_state['values']['tenuto_recital_event_location']);
   variable_set('tenuto_recital_email_confirmation_text', $form_state['values']['tenuto_recital_email_confirmation_text']['value']);
   variable_set('tenuto_recital_email_scheduling_text', $form_state['values']['tenuto_recital_email_scheduling_text']['value']);
+  variable_set('tenuto_recital_chair_email_address', $form_state['values']['tenuto_recital_chair_email_address']);
+  variable_set('tenuto_recital_chair_name', $form_state['values']['tenuto_recital_chair_name']);
+  
   if (isset($form_state['values']['tenuto_recital_event'])) {
     variable_set('tenuto_recital_event', $form_state['values']['tenuto_recital_event']);
     $event = event_load($form_state['values']['tenuto_recital_event']);
@@ -344,6 +362,8 @@ function mlmta_recital_forms_configuration_form_submit($form, &$form_state) {
     $event_wrapper = entity_metadata_wrapper('event', $event);
     $event_wrapper->field_event_date = $event_date;
     $event_wrapper->field_event_location = $form_state['values']['tenuto_recital_event_location'];
+    $event_wrapper->field_chair_name =  $form_state['values']['tenuto_recital_chair_name'];
+    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_recital_chair_email_address'];
     event_save($event);   
   }
   drupal_set_message(t('The settings have been saved.'));
@@ -380,7 +400,14 @@ function mlmta_recital_forms_token_info() {
     'name' => t('Tenuto system location for the Student Recital'),
     'description' => t('The location for the Student Recital.'),
   );
-
+  $tokens['tokens']['site']['tenuto-recital-chair-name'] = array(
+    'name' => t('Tenuto system Student Recital chair name'),
+    'description' => t('The chair name for the Student Recital.'),
+  );
+  $tokens['tokens']['site']['tenuto-recital-chair-email-address'] = array(
+    'name' => t('Tenuto system Student Recital chair email'),
+    'description' => t('The chair email for the Student Recital.'),
+  );
   return $tokens;
 }
 
@@ -422,6 +449,16 @@ function mlmta_recital_forms_tokens($type, $tokens, array $data = array(), array
           $value = $sanitize ? filter_xss($value) : $value;
           $replacements[$original] = $value;
           break;
+        case 'tenuto-recital-chair-name':
+          $value = variable_get('tenuto_recital_chair_name', '');
+          $value = $sanitize ? filter_xss($value) : $value;
+          $replacement[$original] = $value;
+          break;
+        case 'tenuto-recital-chair-email-address':
+          $value = variable_get('tenuto_recital_chair_email_address', '');
+          $value = $sanitize ? filter_xss($value) : $value;
+          $replacement[$original] = $value;
+          break;        
       }
     }
     return $replacements;
@@ -491,4 +528,79 @@ function mlmta_recital_output_program() {
   drupal_add_http_header('Content-Disposition',  'attachment;filename= "'.$filename.'"');
   print $content;
   drupal_exit();
+}
+
+/**
+ * Checks recital registrations by teacher to detect if there are more than 4 registrations and more than 10 minutes of length
+ */
+function mlmta_recital_check_teacher_limits($pursuit) {
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  $teacher_id = $pursuit_wrapper->pursuit_teacher_reference[0]->raw();
+  $total_time = $pursuit_wrapper->pursuit_trimmed_duration->value(); // in seconds
+  $q = new EntityFieldQuery();
+  $q->entityCondition('entity_type', 'pursuit');
+  $q->entityCondition('bundle', array('recital_solo','recital_ensemble'), 'IN');
+  $q->fieldCondition('pursuit_teacher_reference','target_id',$teacher_id);
+  $r = $q->execute();
+  if (empty($r['pursuit'])) {
+    return ;
+  }
+  $pursuit_ids = array_keys($r['pursuit']);
+  $loaded_pursuits = pursuit_load_multiple($pursuit_ids);
+  foreach ($loaded_pursuits as $loaded_pursuit) {
+    $loaded_wrapper = entity_metadata_wrapper('pursuit', $loaded_pursuit);
+    $total_time += $loaded_wrapper->pursuit_trimmed_duration->value();
+  }
+  $number_flag = FALSE;
+  $time_flag = FALSE;
+  if (count($pursuit_ids > 3)) {
+    $number_flag = TRUE;
+    drupal_set_message(t('You have registered more than 4 students in this recital. An email has been sent to the chair to alert her/him about this situation. Please get in touch with the chair to clarify.'), 'warning');
+  }
+  if ($total_time > 600) {
+    drupal_set_message(t('You have registered students whose pieces exceed the 10 minute maximum length for this recital. An email has been sent to the chair to alert her/him about this situation. Please get in touch with the chair to clarify.'), 'warning');
+    $time_flag = TRUE;
+  }
+
+  if ($time_flag || $number_flag) {
+    $body[] = "
+Student recital chair:
+
+This is an automated notice to indicate that a registrant for the MLMTA Student Recitals has exceeded the maximum number of students or length. Additional information below
+
+-- The MLMTA registration system 
+";
+  }
+  if ($number_flag) {
+    $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
+    $body[] = 'Has exceeded the maximum number of students. Currently this teacher has registered '. (count($pursuit_ids) + 1) .' students.';
+  }
+  
+  if ($time_flag) {
+    $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
+    $body[] = 'Has exceeded the maximum number of minutes. Currently this teacher has registered pieces for '. ($total_time/60) .' minutes.';
+  }
+
+  $params = array(
+    'key' => 'send_personnel_schedule',
+    'subject' => 'MLMTA Recital Chair automated notice: teacher has exceeded recital limits',
+    'body' => $body,
+    'language' => 'und',
+  );
+  
+  $event_id = event_switch_get_active_event();
+  $event_wrapper = entity_metadata_wrapper('event' ,  $event_id);
+  $chair_email = !empty($event_wrapper->field_chair_email_address->value()) ? $event_wrapper->field_chair_email_address->value() : 'acremaschi@tenutoweb.com';
+  drupal_mail('personnel', 'send_personnel_schedule', $chair_email, 'und', $params);   // add the email of the chair or define a way to do this  
+}
+
+/**
+ * Implements hook_mail().
+ */
+function mlmta_recital_mail($key, &$message, $params) {
+  if ($key == 'send_recital_chair_warning') {
+    $message['subject'] = $params['subject'];
+    $message['body'] = $params['body'];
+    $message['headers']['Cc'] =  'acremaschi@tenutoweb.com'; 
+  }
 }

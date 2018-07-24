@@ -742,6 +742,7 @@ function mlmta_recital_ensemble_form_submit($form, &$form_state) {
         break;
     }
     pursuit_add_to_shopping_cart(array($pursuit), $sku);
+    mlmta_recital_check_teacher_limits($pursuit);
   } 
 }
 

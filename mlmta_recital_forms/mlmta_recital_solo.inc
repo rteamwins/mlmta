@@ -388,6 +388,7 @@ function mlmta_recital_solo_form_submit($form, &$form_state) {
   pursuit_save($pursuit);
   if (empty($form_state['pursuit'])) {
     pursuit_add_to_shopping_cart(array($pursuit), 'recital');
+    mlmta_recital_check_teacher_limits($pursuit);
   }
 }
 
