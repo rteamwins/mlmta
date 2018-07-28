@@ -221,24 +221,26 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
   $deadline = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
   $cutoff = format_date(variable_get('tenuto_solo_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
   $format = "m-d-Y h:i A";
-  
-  $events = event_load_all();
-  if (!empty($events)) {
 
-    $options = array();
-    foreach ($events as $id => $event) {
-      $options[$id] = $events[$id]->title; 
-    }
-    
-    $form['tenuto_solo_event'] = array(
-      '#type' => 'select',
-      '#title' => 'Event',
-      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
-      '#required' => TRUE,
-      '#options' => $options,
-      '#default_value' => variable_get('tenuto_solo_event',NULL),
-    );
+  $events = event_load_all();  
+  if (user_access('administer event types')) {
+    if (!empty($events)) {
+      $options = array();
+      foreach ($events as $id => $event) {
+        $options[$id] = $events[$id]->title; 
+      }
+      
+      $form['tenuto_solo_event'] = array(
+        '#type' => 'select',
+        '#title' => 'Event',
+        '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+        '#required' => TRUE,
+        '#options' => $options,
+        '#default_value' => variable_get('tenuto_solo_event',NULL),
+      );
+    } 
   }
+
   $form['tenuto_solo_chair_name'] = array(
     '#type' => 'textfield',
     '#title' => 'Chair name',
