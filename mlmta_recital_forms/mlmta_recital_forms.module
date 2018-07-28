@@ -454,12 +454,12 @@ function mlmta_recital_forms_tokens($type, $tokens, array $data = array(), array
         case 'tenuto-recital-chair-name':
           $value = variable_get('tenuto_recital_chair_name', '');
           $value = $sanitize ? filter_xss($value) : $value;
-          $replacement[$original] = $value;
+          $replacements[$original] = $value;
           break;
         case 'tenuto-recital-chair-email-address':
           $value = variable_get('tenuto_recital_chair_email_address', '');
           $value = $sanitize ? filter_xss($value) : $value;
-          $replacement[$original] = $value;
+          $replacements[$original] = $value;
           break;        
       }
     }

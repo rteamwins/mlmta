@@ -425,7 +425,7 @@ function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $o
     $sanitize = !empty($options['sanitize']);
     // Loop through the available tokens.
     foreach ($tokens as $name => $original) {
-      dpm($name); switch ($name) {
+      switch ($name) {
         case 'tenuto-solo-email-confirmation-text':
           $value = variable_get('tenuto_solo_email_confirmation_text','');
           $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
@@ -459,13 +459,13 @@ function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $o
         case 'tenuto-solo-chair-name':
           $value = variable_get('tenuto_solo_chair_name', '');
           $value = $sanitize ? filter_xss($value) : $value;
-          $replacement[$original] = $value;
+          $replacements[$original] = $value;
           break;
         case 'tenuto-dsf-chair-email-address':
         case 'tenuto-solo-chair-email-address':
           $value = variable_get('tenuto_solo_chair_email_address', '');
           $value = $sanitize ? filter_xss($value) : $value;
-          $replacement[$original] = $value;
+          $replacements[$original] = $value;
           break; 
       }
     }
