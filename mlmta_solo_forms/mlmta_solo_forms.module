@@ -248,11 +248,11 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
     '#default_value' => variable_get('tenuto_solo_chair_name', NULL),
   );
   
-  $form['tenuto_solo_chair_email'] = array(
+  $form['tenuto_solo_chair_email_address'] = array(
     '#type' => 'textfield',
     '#title' => 'Chair email',
     '#description' => 'Enter the email address of the event chair. For more than one chair, separate email with commas.',
-    '#default_value' => variable_get('tenuto_solo_chair_email', NULL),
+    '#default_value' => variable_get('tenuto_solo_chair_email_address', NULL),
   );
   
   $form['location_fieldset'] = array(
@@ -347,7 +347,7 @@ function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
   variable_set('tenuto_solo_event_location', $form_state['values']['tenuto_solo_event_location']);
   variable_set('tenuto_solo_email_confirmation_text', $form_state['values']['tenuto_solo_email_confirmation_text']['value']);
   variable_set('tenuto_solo_email_scheduling_text', $form_state['values']['tenuto_solo_email_scheduling_text']['value']);
-  variable_set('tenuto_solo_chair_email', $form_state['values']['tenuto_solo_chair_email']);
+  variable_set('tenuto_solo_chair_email_address', $form_state['values']['tenuto_solo_chair_email_address']);
   variable_set('tenuto_solo_chair_name', $form_state['values']['tenuto_solo_chair_name']);
   if (isset($form_state['values']['tenuto_solo_event'])) {
     variable_set('tenuto_solo_event', $form_state['values']['tenuto_solo_event']);
@@ -358,7 +358,7 @@ function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
     $event_wrapper->field_event_date = $event_date;
     $event_wrapper->field_event_location = $form_state['values']['tenuto_solo_event_location'];
     $event_wrapper->field_chair_name =  $form_state['values']['tenuto_solo_chair_name'];
-    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_solo_chair_email'];
+    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_solo_chair_email_address'];
     event_save($event);   
   }
   drupal_set_message(t('The settings have been saved.'));
@@ -404,12 +404,12 @@ function mlmta_solo_forms_token_info() {
     'name' => t('Tenuto system location for the DSF festival'),
     'description' => t('The location for the DSF festival.'),
   );
-  $tokens['tokens']['site']['tenuto-solo-chair-name'] = array(
-    'name' => t('Tenuto system Student Recital chair name'),
+  $tokens['tokens']['site']['tenuto-dsf-chair-name'] = $tokens['tokens']['site']['tenuto-solo-chair-name'] = array(
+    'name' => t('Tenuto system DSF chair name'),
     'description' => t('The chair name for the Student Recital.'),
   );
-  $tokens['tokens']['site']['tenuto-solo-chair-email'] = array(
-    'name' => t('Tenuto system Student Recital chair email'),
+  $tokens['tokens']['site']['tenuto-dsf-chair-email-address'] = $tokens['tokens']['site']['tenuto-solo-chair-email-address'] = array(
+    'name' => t('Tenuto system DSF chair email'),
     'description' => t('The chair email for the Student Recital.'),
   );
   return $tokens;
@@ -461,9 +461,9 @@ function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $o
           $value = $sanitize ? filter_xss($value) : $value;
           $replacement[$original] = $value;
           break;
-        case 'tenuto-dsf-chair-email':
-        case 'tenuto-solo-chair-email':
-          $value = variable_get('tenuto_solo_chair_email', '');
+        case 'tenuto-dsf-chair-email-address':
+        case 'tenuto-solo-chair-email-address':
+          $value = variable_get('tenuto_solo_chair_email_address', '');
           $value = $sanitize ? filter_xss($value) : $value;
           $replacement[$original] = $value;
           break; 
