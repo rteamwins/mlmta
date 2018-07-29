@@ -76,7 +76,13 @@ function mlmta_base_menu() {
     'type' => MENU_CALLBACK,
   );
 
-
+  $items['admin/mlmta-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'MLMTA registration',
+    'page callback' => 'mlmta_base_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
@@ -137,7 +143,59 @@ function mlmta_base_view_page($pursuit) {
 
 // These helper funtions are used by all forms in the MLMTA systems
 
+/**
+ * Show the content in a modal
+ *
+ * @param $ajax
+ *    Flag for JavaScript enabled browser
+ * @param $pursuit
+ *    The pursuit to view
+ */
 
+function mlmta_base_modal_show($ajax, $pursuit){
+    if ($pursuit->type == 'break') {
+      if ($ajax) {
+        ctools_include('modal');
+        return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
+      } else{
+       return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
+      }
+    }
+    $page = mlmta_base_page($pursuit);
+    if ($ajax) {
+      //watchdog('checking ajax', 'is here');
+      //ctools_include('ajax');
+      ctools_include('modal');
+      if (empty($page)) {
+        return 'Error';
+      }
+      return ctools_modal_render('',$page);
+    } else {
+    // watchdog('checking ajax', 'is NOT here');
+      return $page; 
+    }
+}
+
+/**
+ * Generates a view of the pursuit for all types
+ */
+/**
+ * Creates a render array of the pursuit with all relations
+ */
+function mlmta_base_page($pursuit) {
+  list(, , $bundle) = entity_extract_ids('pursuit', $pursuit);
+  $bundle_label = scheduling_bundle_label('pursuit', $bundle);
+  drupal_set_title($bundle_label);
+  return mlmta_base_multiple_page(array($pursuit));
+}
+
+/**
+ * Builds and returns a renderable array for multiple pursuit. Built completely with students, teachers, accompanists, families and pieces
+ */
+function mlmta_base_multiple_page($pursuits) {
+  $page = entity_view('pursuit', $pursuits, 'complete');
+  return $page;
+}
 
 /**
  * Helper to build list of students in system
