@@ -375,15 +375,15 @@ function mlmta_solo_forms_token_info() {
     'name' => t('Tenuto system event linked to the DSF forms'),
     'description' => t('The event ID linked to the DSF forms.'),
   );
-  $tokens['tokens']['site']['tenuto-solo-email-confirmation-text'] = array(
+  $tokens['tokens']['site']['tenuto-dsf-email-confirmation-text'] = $tokens['tokens']['site']['tenuto-solo-email-confirmation-text'] = array(
     'name' => t('Tenuto system email confirmation text for the DSF festival'),
     'description' => t('Text to be inserted in the email confirmation above the order summary.'),
   );
-  $tokens['tokens']['site']['tenuto-solo-email-scheduling-text'] = array(
+  $tokens['tokens']['site']['tenuto-dsf-email-scheduling-text']  = $tokens['tokens']['site']['tenuto-solo-email-scheduling-text'] = array(
     'name' => t('Tenuto system email scheduling text for the DSF festival'),
     'description' => t('Text to be inserted in the scheduling email above the order summary.'),
   );
-  $tokens['tokens']['site']['tenuto-solo-form-deadline'] = array(
+  $tokens['tokens']['site']['tenuto-dsf-form-deadline'] = $tokens['tokens']['site']['tenuto-solo-form-deadline'] = array(
     'name' => t('Tenuto system form deadline for the DSF festival'),
     'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
   );
