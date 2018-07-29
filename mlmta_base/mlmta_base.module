@@ -474,7 +474,7 @@ function mlmta_base_preprocess_views_aggregator_results_table(&$vars) {
  */
 function mlmta_base_views_pre_render(&$views) {
   // Make sure it's the correct view
-  if (in_array($views->name, array('pursuits_1', 'pursuit_1_ensemble', 'pursuit_1_theory'))) {  // @todo  add check or other views for ensemble and theory
+  if (in_array($views->name, array('pursuits_1', 'pursuits_1_recital'))) {  // @todo  add check or other views for ensemble and theory
     // add needed javascript
     // drupal_add_library('system', 'drupal.ajax');
     //watchdog('view_prerender', 'Im here');
