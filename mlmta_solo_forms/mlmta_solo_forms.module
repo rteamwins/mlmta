@@ -437,6 +437,7 @@ function mlmta_solo_forms_tokens($type, $tokens, array $data = array(), array $o
           $replacements[$original] = $value;
           break;
         case 'tenuto-solo-form-deadline':
+        case 'tenuto-dsf-form-deadline':
           $value = format_date(variable_get('tenuto_solo_form_deadline','1577854800'), 'custom', 'm/d/Y h:i A');
           $replacements[$original] = $value;
           break;
