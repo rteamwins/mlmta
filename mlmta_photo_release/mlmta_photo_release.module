@@ -87,14 +87,15 @@ function mlmta_photo_release_entry() {
 <tr><td width=\"50%\">Event Date: $date</td><td width=\"50%\">Event Location: $location</td></tr> 
 </table>
 <p>The MLMTA will be taking and using photographs and/or videotapes at this event to promote MLMTA activities and to serve its mission to advance musical knowledge and education by sponsoring events for students.  By signing below, the Parent, Guardian, or Student of age 18 or older:</p>
-<ol><li>Authorizes MLMTA to take and use photographs and/or videotape of their child/children at this event on the MLMTA website and MLMTA Facebook page.</li>
-<li>Authorizes MLMTA to print their child/children’s first name and last initial only on the on the MLMTA website and MLMTA Facebook page.</li>
-<li>Authorizes that their child/children may be included in a group photo from this event which may be used on the MLMTA website and MLMTA Facebook page.</li>
+<ul><li>Authorizes MLMTA to take and use photographs and/or videotape of their child/children at this event on the MLMTA website and MLMTA Facebook page.</li>
+<li>Authorizes MLMTA to print their child/children's first name and last initial only on the on the MLMTA website and MLMTA Facebook page.</li>
+<li>Authorizes that their child/children may be included in a group photo from this event which may be used on the MLMTA website and MLMTA Facebook page.</li></ul>
 <p>IF YOU DO NOT SIGN FOR THIS AUTHORIZATION, PLEASE BE SURE THAT YOUR CHILD IS NOT IN THE GROUP PHOTO.</p>  
 ";
 
   $header = array('Last name', "First name", 'Teacher', 'Authorized signature of permission');
   $rows = array();
+  dpm($results);
   foreach($results as $db_row) {
     $cell = array();
     $cell['last_name'] = $db_row->student_last_name_value;
@@ -133,8 +134,8 @@ function mlmta_photo_release_entry() {
   $pdf->writeHTML($output);
   header('Content-Type: application/pdf');
   header('Content-Disposition: attachment;filename="MLMTA-photo-release-form.pdf"');
-  $out = $pdf->Output('tempo.pdf', 'I');
+  $out = $pdf->Output();
   echo $out;
   flush();
-  drupal_exit();
+  exit();
 }
