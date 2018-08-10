@@ -36,7 +36,7 @@ function mlmta_photo_release_entry() {
     INNER JOIN {field_data_student_first_name} student_first_name ON student_first_name.entity_id = student.student_id AND student_first_name.entity_type = :studenttype
     INNER JOIN {field_data_pursuit_teacher_reference} pursuit_teacher ON pursuit_teacher.entity_id = pursuit.pursuit_id AND pursuit_student.entity_type = :type
     INNER JOIN {teacher} teacher ON teacher.teacher_id = pursuit_teacher.pursuit_teacher_reference_target_id
-    GROUP BY student_last_name.student_last_name_value
+    GROUP BY pursuit_student.pursuit_student_reference_target_id
     ORDER BY student_last_name.student_last_name_value ASC
 
   ", array(
