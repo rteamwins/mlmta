@@ -825,3 +825,19 @@ function _mlmta_base_helper_preprocess_views_data_export_csv (&$vars, $content) 
   return $wrap . str_replace('"', $replace_value, $output) . $wrap;
 }
 
+/**
+ * Implements hook_form_FORM_ID_alter
+ * Adds validation for teacher code of a certain length
+ */
+function mlmta_base_form_user_register_form_alter(&$form, &$form_state) {
+  $form['#validate'][] = 'mlmta_base_form_family_form_validate';
+}
+
+/**
+ * Adds validation for mtna code
+ */
+function mlmta_base_form_family_form_validate($form, $form_state) {
+  if(strlen($form_state['values']['field_teacher_code']['und'][0]['value'])<4 or strlen($form_state['values']['field_teacher_code']['und'][0]['value']) > 7) {
+    form_set_error('field_teacher_code][und][0][value', t('Teacher code must be your MTNA ID and be between 4 and 7 digits long'));
+  }
+}
