@@ -178,6 +178,7 @@ function mlmta_piano_solo_student($form, &$form_state) {
     '#title' => t('Theory test level'),
     '#required' => TRUE,
     '#options' => mlmta_solo_forms_theory_levels(),
+    '#empty_value' => '_none',
     '#attributes' => array('class' => array('theory-level')),
     '#weight' => -95,
   );
