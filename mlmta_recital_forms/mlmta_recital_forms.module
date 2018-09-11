@@ -538,7 +538,7 @@ function mlmta_recital_output_program() {
 function mlmta_recital_check_teacher_limits($pursuit) {
   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
   $teacher_id = $pursuit_wrapper->pursuit_teacher_reference[0]->raw();
-  $total_time = $pursuit_wrapper->pursuit_trimmed_duration->value(); // in seconds
+  $total_time = 0; // in seconds
   $q = new EntityFieldQuery();
   $q->entityCondition('entity_type', 'pursuit');
   $q->entityCondition('bundle', array('recital_solo','recital_ensemble'), 'IN');
@@ -555,7 +555,7 @@ function mlmta_recital_check_teacher_limits($pursuit) {
   }
   $number_flag = FALSE;
   $time_flag = FALSE;
-  if (count($pursuit_ids > 3)) {
+  if (count($pursuit_ids) > 3) {
     $number_flag = TRUE;
     drupal_set_message(t('You have registered more than 4 students in this recital. An email has been sent to the chair to alert her/him about this situation. Please get in touch with the chair to clarify.'), 'warning');
   }
@@ -590,9 +590,7 @@ This is an automated notice to indicate that a registrant for the MLMTA Student 
     'language' => 'und',
   );
   
-  $event_id = event_switch_get_active_event();
-  $event_wrapper = entity_metadata_wrapper('event' ,  $event_id);
-  $chair_email = !empty($event_wrapper->field_chair_email_address->value()) ? $event_wrapper->field_chair_email_address->value() : 'acremaschi@tenutoweb.com';
+  $chair_email = !empty(variable_get('tenuto_recital_chair_email_address')) ? variable_get('tenuto_recital_chair_email_address') : 'acremaschi@tenutoweb.com';
   drupal_mail('personnel', 'send_personnel_schedule', $chair_email, 'und', $params);   // add the email of the chair or define a way to do this  
 }
 
