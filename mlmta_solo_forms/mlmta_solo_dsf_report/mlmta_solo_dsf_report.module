@@ -40,7 +40,10 @@ function mlmta_solo_dsf_report_page() {
   
   $header_stuff = array(
     array(
-      'Local association', '', '' ,'' ,'', '', ''
+      'DSPF REPORT', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Local association', 'Main Line Music Teachers Association', '' ,'' ,'', '', ''
     ),
     array(
       'Local chair', '', '' ,'' ,'', '', ''
