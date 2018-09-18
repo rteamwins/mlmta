@@ -25,6 +25,8 @@ function mlmta_solo_dsf_report_page() {
   $view->set_arguments(array($arguments));
   $view->execute();
   $result = $view->result;
+  $number_of_participants = count($result);
+  $fee = $number_of_participants * 2;
   
   $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
   $theory_level_handler = $view->field['field_dsf_theory_test_level'];
@@ -35,6 +37,39 @@ function mlmta_solo_dsf_report_page() {
   
   //instead of writing down to a file we write to the output stream
   $fh = fopen('php://output', 'w');
+  
+  $header_stuff = array(
+    array(
+      'Local association', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Local chair', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Address', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Phone', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Email', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Total participants', $number_of_participants, '' ,'' ,'', '', ''
+    ),
+    array(
+      'Submitted fee', $fee, '' ,'' ,'', '', ''
+    ),
+    array(
+      '', '', '' ,'' ,'', '', ''
+    ),
+    
+  );
+  
+  foreach ($header_stuff as $row) {
+    fputcsv($fh, $row);
+  }
+  
   
   $csv_header = array(
     'Student last name',
