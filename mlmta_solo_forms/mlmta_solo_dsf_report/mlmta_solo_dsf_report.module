@@ -27,6 +27,7 @@ function mlmta_solo_dsf_report_page() {
   $result = $view->result;
   
   $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
+  $theory_level_handler = $view->field['field_dsf_theory_test_level'];
   
   //add necessary headers for browsers
   drupal_add_http_header('Content-Type', 'text/csv; utf-8');
@@ -39,7 +40,8 @@ function mlmta_solo_dsf_report_page() {
     'Student last name',
     'Student first name',
     'Overall rating',
-    'Theory score level',
+    'Theory level',
+    'Theory score',
     'Solo-Ensemble',
     'Teacher'
   );
@@ -49,13 +51,19 @@ function mlmta_solo_dsf_report_page() {
     $csv_row = array();
     $csv_row[] = $view->render_field('student_last_name', $row_index);
     $csv_row[] = $view->render_field('student_first_name', $row_index);
-    $csv_row[] = '';
-    $csv_row[] = ''; // Empty, to be filled by user after download
+    $csv_row[] = ''; // Overall rating
+    
+    // Theory level that corresponds to this student delta
+    $student_delta = $view->render_field('delta', $row_index);
+    $theory_level_items = $theory_level_handler->get_items($row);
+    $csv_row[] = $theory_level_items[$student_delta]['raw']['value'];
+    
+    $csv_row[] = ''; // Theory score. Empty, to be filled by user after download
     $type = $view->render_field('type', $row_index);
     $csv_row[] = scheduling_bundle_label('pursuit', $type);
     
     // Get the teacher that corresponds to this student's delta
-    $student_delta = $view->render_field('delta', $row_index);
+    
     $teacher_items = $teacher_reference_handler->get_items($row);
     $teacher = $teacher_items[$student_delta]['raw']['entity'];
     $teacher_wrapper = entity_metadata_wrapper('teacher', $teacher);
