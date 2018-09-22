@@ -113,7 +113,7 @@ function mlmta_solo_judgesheets_do_the_pdf($view) {
   
     // Accompanist
     $pdf->SetXY(35, 82.5, TRUE);
-    $pdf->Write(0, 'a' . $view->render_field('field_accompanist', $row_index));
+    $pdf->Write(0, $view->render_field('field_accompanist', $row_index));
     
     // Students
     $name_x = 66;
