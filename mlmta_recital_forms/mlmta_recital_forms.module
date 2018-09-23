@@ -80,7 +80,7 @@ function mlmta_recital_forms_menu(){
     $items['admin/download-program'] = array(
       'title' => 'Download recital program',
       'description' => 'Generates an html snipped with a table downloaded as a doc file.',
-      'access argument' => array('create timeblock entities'),
+      'access arguments' => array('create timeblock entities'),
       'page callback' => 'mlmta_recital_output_program',
       'type' => MENU_CALLBACK,
     );
