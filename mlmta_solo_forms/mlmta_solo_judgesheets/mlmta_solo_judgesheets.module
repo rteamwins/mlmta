@@ -83,6 +83,7 @@ function mlmta_solo_judgesheets_do_the_pdf($view) {
   $result = $view->result;
   
   $student_reference_handler = $view->field['pursuit_student_reference'];
+  $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
   $instrument_handler = $view->field['field_instrument_list'];
   $piece_handler = $view->field['pursuit_piece_reference'];
   $start_time_handler = $view->field['pursuit_date'];
@@ -130,6 +131,25 @@ function mlmta_solo_judgesheets_do_the_pdf($view) {
       $name_y += $offset_y;
     }
     
+    // Student and teacher "codes"
+    $student_code_x = 13;
+    $teacher_code_x = 143;
+    $student_code_y = 75.5;
+    $student_codes = array();
+    foreach ($student_items as $index => $student_item) {
+      $student_codes[] = $student_item['raw']['target_id'];
+    }
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $teacher_codes = array();
+    foreach ($teacher_items as $index => $teacher_item) {
+      $teacher_codes[] = $teacher_item['raw']['target_id'];
+    }
+    $pdf->SetFont('freesans', '', 10);
+    $pdf->SetXY($student_code_x, $student_code_y, TRUE);
+    $pdf->Write(0, 'Student code(s): '. implode(', ', $student_codes));
+    $pdf->SetX($teacher_code_x, TRUE);
+    $pdf->Write(0,'Teacher code(s): '. implode(', ', $teacher_codes));
+    
     // Pieces
     $piece_x = 13;
     $composer_x =143;
@@ -139,11 +159,12 @@ function mlmta_solo_judgesheets_do_the_pdf($view) {
     $piece_items = $piece_handler->get_items($row);
     $pdf->SetFont('freesans', '', 10);
     foreach ($piece_items as $index => $piece_item) {
+      $piece_number = $index +1;
       $piece_wrapper = entity_metadata_wrapper('piece', $piece_item['raw']['entity']);
       $piece_title[$index] = $piece_wrapper->label();
       $piece_composer[$index] = $piece_wrapper->piece_composer->label();
       $pdf->SetXY($piece_x, $piece_y, TRUE);
-      $pdf->Write(0, $piece_title[$index]);
+      $pdf->Write(0, $piece_number . '. ' . $piece_title[$index]);
       $pdf->SetX($composer_x, TRUE);
       $pdf->Write(0, $piece_composer[$index]);
       $piece_y += $offset_y;
