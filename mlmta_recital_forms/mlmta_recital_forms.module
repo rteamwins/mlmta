@@ -571,27 +571,28 @@ Student recital chair:
 This is an automated notice to indicate that a registrant for the MLMTA Student Recitals has exceeded the maximum number of students or length. Additional information below
 
 -- The MLMTA registration system 
-";
-  }
-  if ($number_flag) {
-    $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
-    $body[] = 'Has exceeded the maximum number of students. Currently this teacher has registered '. (count($pursuit_ids) + 1) .' students.';
-  }
+  ";
   
-  if ($time_flag) {
-    $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
-    $body[] = 'Has exceeded the maximum number of minutes. Currently this teacher has registered pieces for '. ($total_time/60) .' minutes.';
-  }
-
-  $params = array(
-    'key' => 'send_personnel_schedule',
-    'subject' => 'MLMTA Recital Chair automated notice: teacher has exceeded recital limits',
-    'body' => $body,
-    'language' => 'und',
-  );
+    if ($number_flag) {
+      $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
+      $body[] = 'Has exceeded the maximum number of students. Currently this teacher has registered '. (count($pursuit_ids) + 1) .' students.';
+    }
+    
+    if ($time_flag) {
+      $body[] = 'Teacher: ' . $pursuit_wrapper->pursuit_teacher_reference[0]->label();
+      $body[] = 'Has exceeded the maximum number of minutes. Currently this teacher has registered pieces for '. ($total_time/60) .' minutes.';
+    }
   
-  $chair_email = !empty(variable_get('tenuto_recital_chair_email_address')) ? variable_get('tenuto_recital_chair_email_address') : 'acremaschi@tenutoweb.com';
-  drupal_mail('personnel', 'send_personnel_schedule', $chair_email, 'und', $params);   // add the email of the chair or define a way to do this  
+    $params = array(
+      'key' => 'send_personnel_schedule',
+      'subject' => 'MLMTA Recital Chair automated notice: teacher has exceeded recital limits',
+      'body' => $body,
+      'language' => 'und',
+    );
+    
+    $chair_email = !empty(variable_get('tenuto_recital_chair_email_address')) ? variable_get('tenuto_recital_chair_email_address') : 'acremaschi@tenutoweb.com';
+    drupal_mail('personnel', 'send_personnel_schedule', $chair_email, 'und', $params);   // add the email of the chair or define a way to do this
+  }
 }
 
 /**
