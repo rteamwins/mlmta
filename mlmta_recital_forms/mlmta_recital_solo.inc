@@ -44,7 +44,7 @@ function mlmta_recital_solo_form($form, &$form_state, $pursuit = NULL) {
   drupal_set_title(t($form_state['step_information'][$step]['title']));
   
   $form = $form_state['step_information'][$step]['form']($form, $form_state);
-  $deadline = variable_get('tenuto_solo_form_deadline', '1922425200');
+  $deadline = variable_get('tenuto_recital_form_deadline', '1922425200');
   if (time()<=$deadline || user_access('edit pursuit after deadline')) {
     if ($step > 1) {
       $form['prev'] = array(
