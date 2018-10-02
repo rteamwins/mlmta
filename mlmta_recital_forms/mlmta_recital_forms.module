@@ -605,3 +605,12 @@ function mlmta_recital_mail($key, &$message, $params) {
     $message['headers']['Cc'] =  'acremaschi@tenutoweb.com'; 
   }
 }
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the rearrange view form to add recalculation THIS NEEDS TO MOVE TO INDIVIDUAL SYSTEMS DUE TO MULTIPLE FORM NAMES
+ */
+function timeblock_form_views_form_pursuits_1_recitals_rearrange_alter(&$form, &$form_state) {
+  $form['#submit'][] = 'timeblock_trigger_recalculation_callback';
+}

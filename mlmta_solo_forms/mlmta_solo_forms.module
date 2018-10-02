@@ -406,11 +406,11 @@ function mlmta_solo_forms_token_info() {
   );
   $tokens['tokens']['site']['tenuto-dsf-chair-name'] = $tokens['tokens']['site']['tenuto-solo-chair-name'] = array(
     'name' => t('Tenuto system DSF chair name'),
-    'description' => t('The chair name for the Student Recital.'),
+    'description' => t('The chair name for the DSF festival.'),
   );
   $tokens['tokens']['site']['tenuto-dsf-chair-email-address'] = $tokens['tokens']['site']['tenuto-solo-chair-email-address'] = array(
     'name' => t('Tenuto system DSF chair email'),
-    'description' => t('The chair email for the Student Recital.'),
+    'description' => t('The chair email for the DSF festival.'),
   );
   return $tokens;
 }
@@ -550,3 +550,5 @@ function mlmta_solo_forms_instruments() {
     'Piano', 'Voice', 'Violin', 'Viola', 'Cello', 'Bass', 'Guitar', 'Harp', 'Flute', 'Oboe', 'Clarinet', 'Bassoon', 'French horn', 'English horn', 'Saxophone' ,'Trumpet', 'Trombone', 'Euphonium', 'Tuba', 'Percussion', 'Marimba', 'Vibraphone',  
   ));
 }
+
+
