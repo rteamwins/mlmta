@@ -1,0 +1,178 @@
+<?php
+
+require_once('sites/all/libraries/tcpdf/tcpdf.php');
+require_once('sites/all/libraries/fpdi/fpdi.php');
+
+class PDF extends FPDI
+{
+  /**
+  * "Remembers" the template id of the imported page
+  */
+  var $_tplIdx;
+
+  /**
+   * Draw an imported PDF logo on every page
+   */
+  function Header() {
+    if (is_null($this->_tplIdx)) {
+      $path = drupal_get_path('module', 'mlmta_solo_judgesheets');
+      $this->setSourceFile($path.'/dsf-score-sheet.pdf');
+      $this->_tplIdx = $this->importPage(1);
+    }
+    $size = $this->useTemplate($this->_tplIdx);
+  }
+
+  function Footer()
+  {
+    // emtpy method body
+  }
+}
+
+/*
+ * Implements hook_menu().
+ */
+
+function mlmta_solo_judgesheets_menu() {
+  $items['dsf-pdf-judgesheets'] = array(
+    'page callback' => 'mlmta_solo_judgesheets_entry',
+    'access arguments' => array('administer line items'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/*
+ * Entry point for printing certificates
+ */
+function mlmta_solo_judgesheets_entry(){
+  
+  $view = views_get_view('pursuits_for_judges');
+  //if (empty($result)) {
+  //  drupal_set_message('You can\'t print any judge sheets because there are no registrants in the system for this event.', 'warning');
+  //  drupal_goto('<front>');
+  //}
+  
+  $pdf = mlmta_solo_judgesheets_do_the_pdf($view);
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment; filename="MLMTA-DSF-JudgeSheet.pdf"');
+  echo $pdf;
+  flush();
+  exit();
+}
+
+
+function mlmta_solo_judgesheets_sort($pursuit_a, $pursuit_b) {
+  $student_a = student_load($pursuit_a->pursuit_student_reference['und'][0]['target_id']);
+  $student_b = student_load($pursuit_b->pursuit_student_reference['und'][0]['target_id']);
+  $last_name_a = $student_a->student_last_name['und'][0]['value'];
+  $last_name_b = $student_b->student_last_name['und'][0]['value'];
+  return (strcmp($last_name_a, $last_name_b));
+}
+/*
+ * Generates the pdf
+ * @param view $view
+ *    A view object already sorted with information to be displayed
+ * @return array $result
+ *    An array of row objects
+ */
+
+function mlmta_solo_judgesheets_do_the_pdf($view) {
+  $arguments = variable_get('tenuto_solo_event', NULL);
+  $view->set_arguments(array($arguments));
+  $view->execute();
+  $result = $view->result;
+  
+  $student_reference_handler = $view->field['pursuit_student_reference'];
+  $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
+  $instrument_handler = $view->field['field_instrument_list'];
+  $piece_handler = $view->field['pursuit_piece_reference'];
+  $start_time_handler = $view->field['pursuit_date'];
+  
+  // initiate PDF
+  $pdf = new PDF('P','mm', 'LETTER');
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  //$pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  foreach ($result as $row_index => $row){
+    
+    $pdf->AddPage('P','LETTER');  
+  
+    $pdf->SetFont('freesans', '', 12);
+
+    // Room
+    $pdf->SetXY(45, 5, TRUE);
+    $pdf->Write(0, 'Room: ' . $view->render_field('name_1', $row_index));
+    
+    // Date and time
+    $date_items = $start_time_handler->get_items($row);
+    $pdf->SetX(130, TRUE);
+    $pdf->Write(0, 'Time: '. format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'D, m/d/Y - h:ia'));
+
+    // Judge
+    $pdf->SetXY(45, 11, TRUE);
+    $pdf->Write(0, 'Judge: ' . $view->render_field('title_1', $row_index));
+  
+    // Accompanist
+    $pdf->SetXY(35, 82.5, TRUE);
+    $pdf->Write(0, $view->render_field('field_accompanist', $row_index));
+    
+    // Students
+    $name_x = 66;
+    $instrument_x = 181;
+    $name_y = 44;
+    $offset_y = 7.5;
+    $student_items = $student_reference_handler->get_items($row);
+    $instrument_items = $instrument_handler->get_items($row);
+    foreach ($student_items as $index => $student_item) {
+      $pdf->SetXY($name_x, $name_y, TRUE);
+      $pdf->Write(0, $student_reference_handler->render_item($index, $student_item));
+      $pdf->SetX($instrument_x, TRUE);
+      $pdf->Write(0, $instrument_handler->render_item($index, $instrument_items[$index]));
+      $name_y += $offset_y;
+    }
+    
+    // Student and teacher "codes"
+    $student_code_x = 13;
+    $teacher_code_x = 143;
+    $student_code_y = 75.5;
+    $student_codes = array();
+    foreach ($student_items as $index => $student_item) {
+      $student_codes[] = $student_item['raw']['target_id'];
+    }
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $teacher_codes = array();
+    foreach ($teacher_items as $index => $teacher_item) {
+      $teacher_codes[] = $teacher_item['raw']['target_id'];
+    }
+    $pdf->SetFont('freesans', '', 10);
+    $pdf->SetXY($student_code_x, $student_code_y, TRUE);
+    $pdf->Write(0, 'Student code(s): '. implode(', ', $student_codes));
+    $pdf->SetX($teacher_code_x, TRUE);
+    $pdf->Write(0,'Teacher code(s): '. implode(', ', $teacher_codes));
+    
+    // Pieces
+    $piece_x = 13;
+    $composer_x =143;
+    $piece_y = 96;
+    $offset_y = 8;
+    
+    $piece_items = $piece_handler->get_items($row);
+    $pdf->SetFont('freesans', '', 10);
+    foreach ($piece_items as $index => $piece_item) {
+      $piece_number = $index +1;
+      $piece_wrapper = entity_metadata_wrapper('piece', $piece_item['raw']['entity']);
+      $piece_title[$index] = $piece_wrapper->label();
+      $piece_composer[$index] = $piece_wrapper->piece_composer->label();
+      $pdf->SetXY($piece_x, $piece_y, TRUE);
+      $pdf->Write(0, $piece_number . '. ' . $piece_title[$index]);
+      $pdf->SetX($composer_x, TRUE);
+      $pdf->Write(0, $piece_composer[$index]);
+      $piece_y += $offset_y;
+    }
+    
+  }
+  $pdf->Output();
+
+}
+
+

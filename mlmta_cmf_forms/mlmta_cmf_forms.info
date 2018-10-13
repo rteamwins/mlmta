@@ -1,0 +1,6 @@
+name = MLMTA CMF forms
+description = All functions related to forms for CMF festival
+core = 7.x
+package = MLMTA
+
+dependencies[] = pursuit
