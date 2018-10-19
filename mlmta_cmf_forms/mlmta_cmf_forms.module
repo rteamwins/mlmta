@@ -15,14 +15,14 @@ function mlmta_cmf_forms_menu(){
     'file' => 'mlmta_cmf_solo.inc',
   );
   
-  $items['cmf-ensemble-registration/new'] = array(
-    'title' => t('CMF ensemble registration form'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('mlmta_cmf_ensemble_form'),
-    'access callback' => 'user_is_logged_in',
-    'type' => MENU_CALLBACK,
-    'file' => 'mlmta_cmf_ensemble.inc',
-  );
+  //$items['cmf-ensemble-registration/new'] = array(
+  //  'title' => t('CMF ensemble registration form'),
+  //  'page callback' => 'drupal_get_form',
+  //  'page arguments' => array('mlmta_cmf_ensemble_form'),
+  //  'access callback' => 'user_is_logged_in',
+  //  'type' => MENU_CALLBACK,
+  //  'file' => 'mlmta_cmf_ensemble.inc',
+  //);
    
   $items['admin/cmf-form/%ctools_js/%pursuit/view'] = array(
     'title' => 'CMF solo registration',
@@ -41,6 +41,14 @@ function mlmta_cmf_forms_menu(){
     'type' => MENU_NORMAL_ITEM,
    );
 
+   $items['cmf-registrations-csv-download'] = array(
+    'title' => 'Download registrations as CSV',
+    'description' => 'Download CSV',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'mlmta_cmf_forms_produce_registration_csv',
+    'type' => MENU_CALLBACK,
+   );
+   
     //$items['admin/download-program'] = array(
     //  'title' => 'Download recital program',
     //  'description' => 'Generates an html snipped with a table downloaded as a doc file.',
@@ -72,7 +80,7 @@ function mlmta_cmf_forms_edit_access_check($pursuit) {
  */
 function mlmta_cmf_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
   if (in_array($pursuit->type, array('cmf_solo'))) {  // @todo Create these pursuit types
-    $max_duration = 20 * 60; 
+    $max_duration = 15 * 60; 
   }
 }
 
@@ -459,3 +467,125 @@ function mlmta_cmf_forms_message_order_summary(Message $message) {
 function timeblock_form_views_form_pursuits_1_cmf_rearrange_alter(&$form, &$form_state) { //@todo Create pursuit_1_cmf View
   $form['#submit'][] = 'timeblock_trigger_recalculation_callback';
 }
+
+
+/**
+ * Produce complete CSV of CMF registrations
+ */
+function mlmta_cmf_forms_produce_registration_csv() {
+  // Get the records
+  $event_id = variable_get('tenuto_cmf_event', NULL);
+  if(!$event_id) {
+    drupal_set_message('Please be sure to select the CMF event', 'error');
+    return 'Error';
+  }
+  
+  $q = db_select('pursuit');
+  $q->fields('pursuit', array('pursuit_id'));
+  
+  // Filter event 9 (CMF)
+  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
+  
+  // Filter active ones
+  $q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1');
+  
+  // Join to student reference 
+  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id');
+  $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
+  
+  // Join to student last name
+  $q->join('field_data_student_last_name', 'last_name','last_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('last_name', array('student_last_name_value'));
+  
+  // Join to student first name
+  $q->join('field_data_student_first_name', 'first_name','first_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('first_name', array('student_first_name_value'));
+  
+  // Sort by student last name
+  $q->orderBy('last_name.student_last_name_value');
+  
+  // Sort by student first name
+  $q->orderBy('first_name.student_first_name_value');
+  
+  $result = $q->execute()->fetchAllAssoc('pursuit_id');
+  
+  if (empty($result)) {
+    return 'No registrations found.';    
+  }
+  $pursuit_ids = array_keys($result);
+  $pursuits = pursuit_load_multiple($pursuit_ids);
+  
+  // Build the CSV structure
+  $structure = array(
+    'pursuit_id' => 'Registration ID',
+    'pursuit_order_reference' => array(
+      'order_id' => 'Order ID',
+    ),
+    'pursuit_order_paid' => 'Paid',
+    'pursuit_active' => 'Active',
+    'type' => 'Type',
+    'label' => 'Registrant(s)',
+    'pursuit_student_reference' => array(
+      'student_first_name' => 'Student first name',
+      'student_last_name' => 'Student last name',
+      'student_calculated_age' => 'Student calculated age',
+      'student_calculated_time' => 'Student time with current teacher',
+      'student_email' => 'Student email',
+      'field_student_phone' => 'Student phone',
+      'field_student_family' => array(
+        'lable' => 'Student group',
+      ),
+     ),
+    'field_piano_solo_level'=>'Level',
+    'pursuit_piece_reference' => array(
+      'label' => 'Piece',
+      'piece_composer' => array('name' => 'Composer'),
+      'piece_duration' => 'Duration',
+    ),
+    'pursuit_duration' => 'Total duration',
+    'pursuit_trimmed_duration' => 'Trimmed duration',
+    'pursuit_contestant_number' => 'Contestant # within time block',
+    'pursuit_instrument' => 'Instrument',
+    'pursuit_teacher_reference' => array(
+      'teacher_first_name' => 'Teacher first name',
+      'teacher_last_name' => 'Teacher last name',
+      'teacher_email' => 'Teacher email',
+      'teacher_phone' => 'Teacher phone',
+      'teacher_code' => 'Teacher code',
+    ),
+    'field_event_reference' => array(
+      'label' => 'Event'
+    ),
+    'pursuit_timeblock_reference' => array(
+      //'title' => 'Time block',
+      'timeblock_room' => array(
+        'label' => 'Room'
+      ),
+    ),
+    'pursuit_date' => 'Performance date'
+  );
+  
+  $cardinality_index = array(
+    'pursuit_piece_reference' => 2,
+  'pursuit_student_reference' => 3,
+  );
+  
+  $header_array = mlmta_base_form_build_csv_header($structure, $cardinality_index);
+
+  //instead of writing down to a file we write to the output stream
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-cmf-registrations.csv"');
+  $fh = fopen('php://output', 'w');
+  fputcsv($fh, $header_array);
+  
+  foreach ($pursuits as $pursuit) {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
+    fputcsv($fh, $row);
+  }
+  drupal_exit();
+}
+
+
+

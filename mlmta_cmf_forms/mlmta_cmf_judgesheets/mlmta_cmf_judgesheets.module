@@ -1,0 +1,211 @@
+<?php
+
+require_once('sites/all/libraries/tcpdf/tcpdf.php');
+require_once('sites/all/libraries/fpdi/fpdi.php');
+
+class CMFPDF extends FPDI
+{
+  /**
+  * "Remembers" the template id of the imported page
+  */
+  var $_tplIdx;
+
+  /**
+   * Draw an imported PDF logo on every page
+   */
+  function Header() {
+    if (is_null($this->_tplIdx)) {
+      $path = drupal_get_path('module', 'mlmta_cmf_judgesheets');
+      $this->setSourceFile($path.'/cmf-adjudication-form.pdf');
+      $this->_tplIdx = $this->importPage(1);
+    }
+    $size = $this->useTemplate($this->_tplIdx);
+  }
+
+  function Footer()
+  {
+    // emtpy method body
+  }
+}
+
+/*
+ * Implements hook_menu().
+ */
+
+function mlmta_cmf_judgesheets_menu() {
+  $items['cmf-pdf-judgesheets'] = array(
+    'page callback' => 'mlmta_cmf_judgesheets_entry',
+    'access arguments' => array('administer line items'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/*
+ * Entry point for printing certificates
+ */
+function mlmta_cmf_judgesheets_entry(){
+  
+  $view = views_get_view('pursuits_for_judges');
+  //if (empty($result)) {
+  //  drupal_set_message('You can\'t print any judge sheets because there are no registrants in the system for this event.', 'warning');
+  //  drupal_goto('<front>');
+  //}
+  
+  $pdf = mlmta_cmf_judgesheets_do_the_pdf($view);
+  header('Content-Type: application/pdf');
+  header('Content-Disposition: attachment; filename="MLMTA-CMF-JudgeSheet.pdf"');
+  echo $pdf;
+  flush();
+  exit();
+}
+
+
+function mlmta_cmf_judgesheets_sort($pursuit_a, $pursuit_b) {
+  $student_a = student_load($pursuit_a->pursuit_student_reference['und'][0]['target_id']);
+  $student_b = student_load($pursuit_b->pursuit_student_reference['und'][0]['target_id']);
+  $last_name_a = $student_a->student_last_name['und'][0]['value'];
+  $last_name_b = $student_b->student_last_name['und'][0]['value'];
+  return (strcmp($last_name_a, $last_name_b));
+}
+/*
+ * Generates the pdf
+ * @param view $view
+ *    A view object already sorted with information to be displayed
+ * @return array $result
+ *    An array of row objects
+ */
+
+function mlmta_cmf_judgesheets_do_the_pdf($view) {
+  $arguments = variable_get('tenuto_cmf_event', NULL);
+  $view->set_arguments(array($arguments));
+  $view->execute();
+  $result = $view->result;
+  
+  $student_reference_handler = $view->field['pursuit_student_reference'];
+  $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
+  //$instrument_handler = $view->field['field_instrument_list'];
+  $piece_handler = $view->field['pursuit_piece_reference'];
+  $start_time_handler = $view->field['pursuit_date'];
+  
+  // initiate PDF
+  $pdf = new CMFPDF('P','mm', 'LETTER');
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  //$pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  $pdf->SetFont('freesans', '', 10);
+  foreach ($result as $row_index => $row){
+    
+    $pdf->AddPage('P','LETTER');   
+    
+    // Date
+    $date_items = $start_time_handler->get_items($row);
+    $pdf->SetXY(29, 44.5, TRUE);
+    $pdf->Write(0, format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'm/d/Y'));
+
+    // Time
+    $pdf->SetX(59.6, TRUE);
+    $pdf->Write(0, format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'h:ia'));
+
+    // Timeblock
+    $pdf->SetX(91.3, TRUE);
+    $pdf->Write(0, $view->render_field('title_2', $row_index));
+    
+    
+    // Room
+    $pdf->SetX(153.8, TRUE);
+    $pdf->Write(0, $view->render_field('name_1', $row_index));
+    
+    $student_items = $student_reference_handler->get_items($row);
+    
+    
+    // Student name
+    $pdf->SetFont('freesans', 'B', 14);
+    $pdf->SetXY(19, 53, TRUE);
+    $name_and_code = $view->render_field('title', $row_index) . '. (Student ID: '. $student_items[0]['raw']['entity']->student_id .')';
+    $pdf->Write(0, $name_and_code);
+    $pdf->SetFont('freesans', '', 10);
+  
+    // Level
+    $pdf->SetXY(30.1, 60.1, TRUE);
+    $pdf->Write(0, $view->render_field('field_piano_solo_level', $row_index)); // @todo check to see if this exists in the view
+
+    
+    
+    // Age @todo Check if calculated age is added as a field to the view. Perhaps create a new view?
+    $student_items = $student_reference_handler->get_items($row);
+    $years_array = array();
+    $age_array = array();
+    $former_array = array();
+    foreach ($student_items as $index => $student_item) {
+      $student_wrapper = entity_metadata_wrapper('student', $student_item['raw']['entity']);
+      $age_array[] = $student_wrapper->student_calculated_age->value();
+      $years_array[] = $student_wrapper->student_calculated_time->value();
+      $former_array[] = $student_wrapper->field_years_with_previous_teache->value();
+    }
+    $years = implode(', ', $years_array);
+    $age = implode(', ', $age_array);
+    $former = implode(', ', $former_array);
+    $pdf->SetX(90, TRUE);
+    $pdf->Write(0, $age);
+    
+    // Grade
+    $pdf->SetX(120, TRUE);
+    
+    // TEacher code
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $pdf->SetX(126, TRUE);
+    $pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_id);
+    
+    // Years with current teacher. See if there is a calculated field for this as well!
+    $pdf->SetX(178.8, TRUE);
+    $pdf->Write(0, $years);
+        
+    // Pieces
+    $piece_x = 19;
+    $composer_x =150;
+    $piece_y = 68;
+    $offset_y = 5;
+    
+    $piece_items = $piece_handler->get_items($row);
+    foreach ($piece_items as $index => $piece_item) {
+      $piece_number = $index +1;
+      $piece_wrapper = entity_metadata_wrapper('piece', $piece_item['raw']['entity']);
+      $piece_title[$index] = $piece_wrapper->label();
+      $piece_composer[$index] = $piece_wrapper->piece_composer->label();
+      $pdf->SetXY($piece_x, $piece_y, TRUE);
+      $pdf->Write(0, $piece_number . '. ' . $piece_title[$index]);
+      $pdf->SetX($composer_x, TRUE);
+      $pdf->Write(0, $piece_composer[$index]);
+      $piece_y += $offset_y;
+    }
+
+      // Judge
+    $pdf->SetXY(18, 246, TRUE);
+    $pdf->Write(0, 'Judge: ' . $view->render_field('title_1', $row_index));
+    
+    //// Student and teacher "codes"
+    //$student_code_x = 13;
+    //$teacher_code_x = 143;
+    //$student_code_y = 75.5;
+    //$student_codes = array();
+    //foreach ($student_items as $index => $student_item) {
+    //  $student_codes[] = $student_item['raw']['target_id'];
+    //}
+    //$teacher_items = $teacher_reference_handler->get_items($row);
+    //$teacher_codes = array();
+    //foreach ($teacher_items as $index => $teacher_item) {
+    //  $teacher_codes[] = $teacher_item['raw']['target_id'];
+    //}
+    //$pdf->SetFont('freesans', '', 10);
+    //$pdf->SetXY($student_code_x, $student_code_y, TRUE);
+    //$pdf->Write(0, 'Student code(s): '. implode(', ', $student_codes));
+    //$pdf->SetX($teacher_code_x, TRUE);
+    //$pdf->Write(0,'Teacher code(s): '. implode(', ', $teacher_codes));
+       
+  }
+  $pdf->Output();
+
+}
+
+

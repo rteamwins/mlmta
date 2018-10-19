@@ -94,7 +94,6 @@ function mlmta_solo_judgesheets_do_the_pdf($view) {
   //$pdf->SetAutoPageBreak(true, 40);
   $pdf->setFontSubsetting(false);
   foreach ($result as $row_index => $row){
-    
     $pdf->AddPage('P','LETTER');  
   
     $pdf->SetFont('freesans', '', 12);

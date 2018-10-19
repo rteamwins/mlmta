@@ -112,6 +112,16 @@ function mlmta_base_edit_page($pursuit) {
       $form_id = 'mlmta_recital_ensemble_form';
       module_load_include('inc', 'mlmta_recital_forms', 'mlmta_recital_ensemble');
       break;
+    case 'cmf_solo':
+      $form_id = 'mlmta_cmf_solo_form';
+      module_load_include('inc', 'mlmta_cmf_forms', 'mlmta_cmf_solo');
+      break;
+    case 'cmf_ensemble':
+      $form_id = 'mlmta_cmf_ensemble_form';
+      module_load_include('inc', 'mlmta_cmf_forms', 'mlmta_ensemble');
+      break;    
+    default:
+      return 'Undefined';
   }
   if (!mlmta_base_edit_access_check($pursuit)) {
     return MENU_ACCESS_DENIED;
@@ -135,6 +145,9 @@ function mlmta_base_view_page($pursuit) {
     case 'recital_ensemble':
       return mlmta_recital_forms_page($pursuit);
       break;
+    case 'cmf_solo':
+    case 'cmf_ensemble':
+      return mlmta_cmf_forms_page($pursuit);
     default :
         return 'Undefined';
   }
@@ -672,7 +685,7 @@ function mlmta_base_pursuit_update_name_alter(&$name, $pursuit) {
  */
 
 function mlmta_base_preprocess_views_data_export_csv_body(&$vars) {
-  if (in_array($vars['view']->name, array('export_registrations','export_registrations_recital_')) && $vars['view']->current_display == 'views_data_export_1') {
+  if (in_array($vars['view']->name, array('export_registrations','export_registrations_recital_', 'export_registrations_cmf_')) && $vars['view']->current_display == 'views_data_export_1') {
     $agg_field = 'pursuit_id';
     $fan_out_fields = array('title_1', 'piece_composer', 'name', 'field_instrument_list'); // These are the fields that need to be expanded into columns
     $fan_out_number = array('title_1' => 2, 'piece_composer' => 2, 'name' => 4, 'field_instrument_list' => 4); // Max number of new columns
@@ -840,4 +853,115 @@ function mlmta_base_form_family_form_validate($form, $form_state) {
   if(strlen($form_state['values']['field_teacher_code']['und'][0]['value'])<4 or strlen($form_state['values']['field_teacher_code']['und'][0]['value']) > 7) {
     form_set_error('field_teacher_code][und][0][value', t('Teacher code must be your MTNA ID and be between 4 and 7 digits long'));
   }
+}
+
+/**
+ * Builds a flat array for multilevel pursuit for CSV export
+ * Has not been tested for deep trees. Only 2 levels. It most likely won't work
+ * @param <Entity Metadata Wrapper> $wrapper
+ *     The wrapper to the entity
+ * @param Array $structure
+ *      The tree structure of column titles keyed by field name
+ * @param Array $cardinality_index
+ *      A flat array indicating cardinality bigger than 1, keyed by field name
+ * @param Array $row
+ *      The array of cells to be returned
+ */
+function mlmta_base_form_build_csv_row($wrapper, $structure, $cardinality_index,  &$row = array()) {
+  foreach ($structure as $key => $content) {
+    
+    $columns = empty($cardinality_index[$key]) ? 1 : $cardinality_index[$key];
+    $field_type = empty(field_info_field($key)) ? ' ' : field_info_field($key)['type']; 
+    $cardinality_info = empty(field_info_field($key)) ? 1 : field_info_field($key)['cardinality']; // IF this is a property, field_info_field returns empty
+    if (is_array($content)) {
+      // We are dealing with an entity reference field, continue down the tree. Recursively pass content to this function
+      if ($cardinality_info == 1) {
+        if (isset($wrapper->$key) && !empty($wrapper->$key)) {
+          mlmta_base_form_build_csv_row($wrapper->$key, $content, $cardinality_index, $row);
+        } else {
+          $row[] = '';
+        }
+      } else {
+        for ($i = 0; $i < $columns; $i++) {
+          if (isset($wrapper->$key[$i]) && !empty($wrapper->$key[$i])) {
+            mlmta_base_form_build_csv_row($wrapper->$key[$i], $content, $cardinality_index, $row);                    
+          } else { // this is reached is the item is empty, for example, for variable number of pieces
+            foreach ($content as $item) {
+              $row[] = '';
+            }
+          }
+        }
+      }
+      continue;
+    }
+    if ($cardinality_info == 1) {
+      if ($key == 'label') { // Get the label of the item. For some reason, title->value() provides a false positive for isset
+        $value = $wrapper->label();
+      } else {
+        $value = isset($wrapper->$key) ? $wrapper->$key->value() : '';        
+      }
+      if ($field_type == 'hms_field') { // theme the hms fields
+        $row[] = strip_tags(theme('hms', array('value' => $value, 'format' => 'm:ss')));        
+      } elseif ($field_type == 'datetime') { // Theme date fields. Split them into date and time
+        $row[] = format_date(strtotime($value['value'] . ' UTC'), 'custom', 'm/d/Y');
+        $row[] = format_date(strtotime($value['value'].' UTC'), 'custom', 'h:ia');
+        $row[] = format_date(strtotime($value['value2'].' UTC'), 'custom', 'h:ia');
+      } else {
+        $row[] = $value;
+      }
+    } else {
+      for ($i = 0; $i < $columns; $i++) {
+        $value =  $wrapper->$key[$i]->value();
+        $row[] = $value;
+      }
+    }
+  }
+  return $row;
+}
+
+/**
+ * Builds the header row for the CSV. Should be called just with one record
+ *
+ * DUMPED! Do not use. Just create an array with titles, lazy bum
+ * 
+ * @param Array $structure
+ *      The tree structure of column titles keyed by field name
+ * @param Array $cardinality_index
+ *      A flat array indicating cardinality bigger than 1, keyed by field name
+ * @param Array $row
+ *      The array of cells to be returned
+ * @param String $delta
+ *      It adds a delta number to fields within reference fields with multiple cardinality
+ */
+function mlmta_base_form_build_csv_header($structure, $cardinality_index,  &$row = array(), $delta = '') {
+  foreach ($structure as $key => $content) {    
+    $columns = empty($cardinality_index[$key]) ? 1 : $cardinality_index[$key];
+    $field_type = empty(field_info_field($key)) ? ' ' : field_info_field($key)['type']; 
+    $cardinality_info = empty(field_info_field($key)) ? 1 : field_info_field($key)['cardinality']; // IF this is a property, field_info_field returns empty
+    if (is_array($content)) {
+      // We are dealing with an entity reference field, continue down the tree. Recursively pass content to this function
+      if ($cardinality_info == 1) {
+        mlmta_base_form_build_csv_header($content, $cardinality_index, $row, $delta);        
+      } else {
+        for ($i = 0; $i < $columns; $i++) {
+          mlmta_base_form_build_csv_header($content, $cardinality_index, $row, $delta.($i+1));            
+        }
+      }
+      continue;
+    }
+    if ($cardinality_info == 1) {
+      if ($field_type == 'datetime') { // Theme date fields. Split them into date and time
+        $row[] = $content;
+        $row[] = 'Time from';
+        $row[] = 'Time to';
+      } else {
+        $row[] = $content . ' ' .$delta; 
+      }
+    } else {
+      for ($i = 0; $i < $columns; $i++) {
+        $row[] = $content . ' '. $delta .' '.($i+1);
+      }
+    }
+  }
+  return $row;
 }

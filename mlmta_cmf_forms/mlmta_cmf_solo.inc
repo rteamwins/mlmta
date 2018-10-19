@@ -180,7 +180,7 @@ function mlmta_cmf_solo_student($form, &$form_state) {
     if (!empty($form_state['pursuit'])) {
       $student = student_load($form_state['pursuit']->pursuit_student_reference['und'][0]['target_id']);
       $form['student_1']['previous_students']['#default_value'] = $form_state['pursuit']->pursuit_student_reference['und'][0]['target_id'];
-      $form['student_1']['instrument']['#default_value'] = $form_state['pursuit']->field_instrument_list['und'][0]['value'];
+//      $form['student_1']['instrument']['#default_value'] = $form_state['pursuit']->field_instrument_list['und'][0]['value'];
     } 
   }
     // Let's check if we've been here before. If so, we need to reset the #default_values
@@ -292,6 +292,12 @@ function mlmta_cmf_solo_pieces($form, &$form_state) {
   $pursuit_temp = empty($form_state['pursuit']) ? entity_create('pursuit', array('type'=>'recital_solo')) : $form_state['pursuit'];
 
   $form_temp = array();
+  // Attach preferred time to form
+  field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'pursuit_preferred_time'));  
+  $form['pursuit_preferred_time'] = $form_temp['pursuit_preferred_time'];
+  $form['pursuit_preferred_time']['#weight'] = 50;
+  
+  $form_temp = array();
   // Attach level to form
   field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_piano_solo_level'));
   $form['field_piano_solo_level'] = $form_temp['field_piano_solo_level']; // Uses the same field as DSF  @todo Be sure the CMF pursuit type contains this field
@@ -303,8 +309,8 @@ function mlmta_cmf_solo_pieces($form, &$form_state) {
 
   if (!empty($form_state['pursuit'])) {
     // Editing an existing one!
-    $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->pursuit_preferred_time['und']) ?
-    $form_state['pursuit']->pursuit_preferred_time['und'][0]['value'] : '_none' ;
+   // $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = !empty($form_state['pursuit']->pursuit_preferred_time['und']) ?
+    //$form_state['pursuit']->pursuit_preferred_time['und'][0]['value'] : '_none' ;
     $piece1 = piece_load($form_state['pursuit']->pursuit_piece_reference['und'][0]['target_id']);
     $piece2 = piece_load($form_state['pursuit']->pursuit_piece_reference['und'][1]['target_id']);
     $form['piece1_fieldset']['title']['#default_value'] = $piece1->title;
@@ -330,8 +336,8 @@ function mlmta_cmf_solo_pieces($form, &$form_state) {
     $form['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     $form['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     
-    unset($form_state['input']['field_piano_solo_level']);
-    $form['field_cmf_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_cmf_solo_level'][LANGUAGE_NONE][0]['value'];
+    //unset($form_state['input']['field_piano_solo_level']);
+    //$form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
     unset($form_state['input']['pursuit_preferred_time']);
     $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['pursuit_preferred_time'][LANGUAGE_NONE][0]['value'];
 
