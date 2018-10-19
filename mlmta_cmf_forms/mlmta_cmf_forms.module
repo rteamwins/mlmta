@@ -32,7 +32,7 @@ function mlmta_cmf_forms_menu(){
     'type' => MENU_CALLBACK,
   );
   
-  $items['admin/config/cmf-registrations/manage/cmf-settings'] = array(
+  $items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
     'title' => 'Constance Murray general settings',
     'description' => 'General settings for the CMF forms.',
     'access arguments' => array('create timeblock entities'),
