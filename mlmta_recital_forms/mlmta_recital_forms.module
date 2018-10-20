@@ -84,6 +84,14 @@ function mlmta_recital_forms_menu(){
       'page callback' => 'mlmta_recital_output_program',
       'type' => MENU_CALLBACK,
     );
+      
+    $items['recital-registrations-csv-download'] = array(
+      'title' => 'Download registrations as CSV',
+      'description' => 'Download CSV',
+      'access arguments' => array('create timeblock entities'),
+      'page callback' => 'mlmta_recital_forms_produce_registration_csv',
+      'type' => MENU_CALLBACK,
+     );
   return $items;
 }
 
@@ -614,3 +622,128 @@ function mlmta_recital_mail($key, &$message, $params) {
 function timeblock_form_views_form_pursuits_1_recitals_rearrange_alter(&$form, &$form_state) {
   $form['#submit'][] = 'timeblock_trigger_recalculation_callback';
 }
+
+/**
+ * Produce complete CSV of Recitals registrations
+ */
+function mlmta_recital_forms_produce_registration_csv() {
+  // Get the records
+  $event_id = variable_get('tenuto_recital_event', NULL);
+  if(!$event_id) {
+    drupal_set_message('Please be sure to select the Recital event', 'error');
+    return 'Error';
+  }
+  
+  $q = db_select('pursuit');
+  $q->fields('pursuit', array('pursuit_id'));
+  
+  // Filter event 9 (CMF)
+  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
+  
+  // Filter active ones
+  $q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1');
+  
+  // Join to student reference 
+  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id');
+  $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
+  
+  // Join to student last name
+  $q->join('field_data_student_last_name', 'last_name','last_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('last_name', array('student_last_name_value'));
+  
+  // Join to student first name
+  $q->join('field_data_student_first_name', 'first_name','first_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('first_name', array('student_first_name_value'));
+  
+  // Sort by student last name
+  $q->orderBy('last_name.student_last_name_value');
+  
+  // Sort by student first name
+  $q->orderBy('first_name.student_first_name_value');
+  
+  $result = $q->execute()->fetchAllAssoc('pursuit_id');
+  
+  if (empty($result)) {
+    return 'No registrations found.';    
+  }
+  $pursuit_ids = array_keys($result);
+  $pursuits = pursuit_load_multiple($pursuit_ids);
+  
+  // Build the CSV structure
+  $structure = array(
+    'pursuit_id' => 'Registration ID',
+    'pursuit_order_reference' => array(
+      'order_id' => 'Order ID',
+    ),
+    'pursuit_order_paid' => 'Paid',
+    'pursuit_active' => 'Active',
+    'type' => 'Type',
+    'label' => 'Registrant(s)',
+    'pursuit_student_reference' => array(
+      'student_first_name' => 'Student first name',
+      'student_last_name' => 'Student last name',
+      'student_calculated_age' => 'Student calculated age',
+      'student_calculated_time' => 'Student time with current teacher',
+      'student_email' => 'Student email',
+      'field_student_phone' => 'Student phone',
+      'field_student_family' => array(
+        'label' => 'Student group',
+      ),
+     ),
+    'field_instrument_list' => 'Instrument',
+    'field_piano_solo_level'=>'Level',
+    'field_accompanist' => array(
+      'student_first_name' => 'Accompanist first name',
+      'student_last_name' => 'Accompanist last name',
+    ),
+    'pursuit_piece_reference' => array(
+      'label' => 'Piece',
+      'piece_composer' => array('name' => 'Composer'),
+      'piece_duration' => 'Duration',
+    ),
+    'pursuit_duration' => 'Total duration',
+    'pursuit_trimmed_duration' => 'Trimmed duration',
+    'pursuit_contestant_number' => 'Contestant # within time block',
+    'pursuit_preferred_time' => 'Preferred time',
+    'pursuit_teacher_reference' => array(
+      'teacher_first_name' => 'Teacher first name',
+      'teacher_last_name' => 'Teacher last name',
+      'teacher_email' => 'Teacher email',
+      'teacher_phone' => 'Teacher phone',
+      'teacher_code' => 'Teacher code',
+    ),
+    'field_event_reference' => array(
+      'label' => 'Event'
+    ),
+    'pursuit_timeblock_reference' => array(
+      'label' => 'Time block',
+      'timeblock_room' => array(
+        'label' => 'Room'
+      ),
+    ),
+    'pursuit_date' => 'Performance date'
+  );
+  
+  $cardinality_index = array(
+    'pursuit_piece_reference' => 2,
+    'pursuit_student_reference' => 4,
+    'field_instrument_list' => 4,
+  );
+  
+  $header_array = mlmta_base_form_build_csv_header($structure, $cardinality_index);
+
+  //instead of writing down to a file we write to the output stream
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-dsf-registrations.csv"');
+  $fh = fopen('php://output', 'w');
+  fputcsv($fh, $header_array);
+  
+  foreach ($pursuits as $pursuit) {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
+    fputcsv($fh, $row);
+  }
+  drupal_exit();
+}
+

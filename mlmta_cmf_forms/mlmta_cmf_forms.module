@@ -533,7 +533,7 @@ function mlmta_cmf_forms_produce_registration_csv() {
       'student_email' => 'Student email',
       'field_student_phone' => 'Student phone',
       'field_student_family' => array(
-        'lable' => 'Student group',
+        'label' => 'Student group',
       ),
      ),
     'field_piano_solo_level'=>'Level',
@@ -557,7 +557,7 @@ function mlmta_cmf_forms_produce_registration_csv() {
       'label' => 'Event'
     ),
     'pursuit_timeblock_reference' => array(
-      //'title' => 'Time block',
+      'label' => 'Time block',
       'timeblock_room' => array(
         'label' => 'Room'
       ),

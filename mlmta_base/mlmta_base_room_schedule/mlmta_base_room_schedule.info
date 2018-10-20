@@ -1,0 +1,4 @@
+name = MLMTA base room schedule
+description = Generates a PDF with teh room schedule
+core = 7.x
+package = MLMTA

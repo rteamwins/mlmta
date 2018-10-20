@@ -6,10 +6,10 @@
  * Implements hook_menu().
  */
 
-function mlmta_cmf_room_schedule_menu() {
-  $items['admin/pdf-room-schedule-cmf/%event'] = array(
+function mlmta_base_room_schedule_menu() {
+  $items['admin/pdf-room-schedule-base/%event'] = array(
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('mlmta_cmf_room_schedule_room_form', 2),
+    'page arguments' => array('mlmta_base_room_schedule_room_form', 2),
     'access arguments' => array('administer line items'),
     'type' => MENU_CALLBACK,
     'title'=>'Room schedules - CMF.',
@@ -24,9 +24,10 @@ function mlmta_cmf_room_schedule_menu() {
  * @param $tid  Taxonomy term ID for room
  * @param array $variables An array of additional parameters
  */
-function mlmta_cmf_room_schedule_entry($tid ,$variables = array()) {
+function mlmta_base_room_schedule_entry($tid, $variables = array()) {
+  dpm($variables);
   $pdf = new MYPDF('L','mm', 'LETTER');
-  $pdf->event = 'MLMTA CMPF Festival';
+  $pdf->event = 'MLMTA ' . $variables['event_name'];
   $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
   $pdf->SetAutoPageBreak(true, 40);
   $pdf->setFontSubsetting(false);
@@ -42,13 +43,13 @@ function mlmta_cmf_room_schedule_entry($tid ,$variables = array()) {
   $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
   $pdf->SetFooterMargin(PDF_MARGIN_FOOTER); 
 
-  mlmta_cmf_room_schedule_output ($tid, $pdf, $variables);
+  mlmta_base_room_schedule_output ($tid, $pdf, $variables);
 
   // return $output;
   $term = taxonomy_term_load($tid);
   $room_name = check_plain($term->name);
   $room_name = preg_replace("/[^\w]+/", "", $room_name);
-  $file = 'MLMTA-CMFRoomSchedule'.$room_name.'.pdf';
+  $file = 'MLMTA-RoomSchedule'.$room_name.$variables['event_name'].'.pdf';
   $out = $pdf->Output('tempo.pdf', 'I');
   header('Content-Type: application/pdf');
   header('Content-Disposition: attachment; filename="'. $file.'"');
@@ -64,7 +65,7 @@ function mlmta_cmf_room_schedule_entry($tid ,$variables = array()) {
  * @param $pdf  PDF object
  * @param $variables An array of additional parameters
  */
-function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
+function mlmta_base_room_schedule_output ($tid, $pdf, $variables = array()) {
  // Load timeblocks for this room
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'timeblock')
@@ -137,7 +138,7 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
       $row[] = $is_break ? array('data' => 'BREAK','align' => 'center') : array('data'=>$w->title->value(), 'align' => 'center');
       $row[] = $pieces;
       $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center');
-      $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_solo_level->value(), 'align' => 'center');
+      $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_base_level->value(), 'align' => 'center');
       $row[] = array('data' => $duration . '<br/>('.$trimmed. ')', 'align' => 'center');
 
       $rows[] = array('data' => $row, 'nobr' => 'true', 'style' => 'background-color:'.$bg.';');
@@ -157,7 +158,7 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
 /**
  * Generates pdfs for ALL rooms and timeblocks in system
  */
-function mlmta_cmf_room_schedule_all() {
+function mlmta_base_room_schedule_all() {
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'taxonomy_term')
         ->entityCondition('bundle', array('rooms'));
@@ -179,7 +180,7 @@ function mlmta_cmf_room_schedule_all() {
   $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
   $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
   foreach ($tids as $tid) {
-    mlmta_cmf_room_schedule_output($tid, $pdf);
+    mlmta_base_room_schedule_output($tid, $pdf);
   }
   
   // return $output;
@@ -194,7 +195,7 @@ function mlmta_cmf_room_schedule_all() {
 /**
  * Creates a form to select room to print
  */
-function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
+function mlmta_base_room_schedule_room_form($form, &$form_state, $event) {
     
     if (empty($event)) {
         return 'Error: the event id is incorrect. Contact the site administrator.';
@@ -229,6 +230,11 @@ function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
       '#description' => t('Hide teacher name in the room schedules'),
     );
     
+    $form['event_name'] = array(
+      '#type' => 'value',
+      '#value' => $event->title,
+    );
+    
     $form['submit'] = array(
       '#type' => 'submit',
       '#value' => 'Generate PDF',
@@ -240,12 +246,12 @@ function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
 /**
  * Submit handler
  */
-function mlmta_cmf_room_schedule_room_form_submit($form, &$form_state) {
+function mlmta_base_room_schedule_room_form_submit($form, &$form_state) {
     $room = $form_state['values']['room'];
-    
     $variables = array();
     if (isset($form_state['values']['anonymize']) && $form_state['values']['anonymize']) {
       $variables['anonymize'] = TRUE;
     }
-    mlmta_cmf_room_schedule_entry($room, $variables);   
+    $variables['event_name'] = $form_state['values']['event_name'];
+    mlmta_base_room_schedule_entry($room, $variables);   
 }
