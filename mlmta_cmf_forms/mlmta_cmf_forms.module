@@ -544,7 +544,6 @@ function mlmta_cmf_forms_produce_registration_csv() {
     ),
     'pursuit_duration' => 'Total duration',
     'pursuit_trimmed_duration' => 'Trimmed duration',
-    'pursuit_contestant_number' => 'Contestant # within time block',
     'pursuit_instrument' => 'Instrument',
     'pursuit_teacher_reference' => array(
       'teacher_first_name' => 'Teacher first name',
@@ -557,11 +556,12 @@ function mlmta_cmf_forms_produce_registration_csv() {
       'label' => 'Event'
     ),
     'pursuit_timeblock_reference' => array(
-      'label' => 'Time block',
       'timeblock_room' => array(
-        'label' => 'Room'
+        'label' => 'Room',
+      'label' => 'Time block',
       ),
     ),
+    'pursuit_contestant_number' => 'Contestant # within time block',
     'pursuit_date' => 'Performance date'
   );
   

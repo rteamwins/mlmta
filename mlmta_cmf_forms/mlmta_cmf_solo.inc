@@ -149,6 +149,7 @@ function mlmta_cmf_solo_student($form, &$form_state) {
     '#required' => TRUE,
     '#description' => t('Click -Select- and find your student. If you don\'t see your student here, click on "My students" in the main menu bar and create a student.'),
     '#options' => _mlmta_student_build_list('basic_student'),
+    '#empty_option' => '- Select -',
     '#ajax' => array(
       'callback' => '_mlmta_student_1_prepopulate',
       'wrapper' => 'student-1-fieldset',
@@ -164,30 +165,42 @@ function mlmta_cmf_solo_student($form, &$form_state) {
   //  '#default_value' => 'Piano',
   //);
   
-    
-  // Create an empty student object
-  $student = new stdClass();
-        
-  if (!empty($form_state['triggering_element']['#name']) && $form_state['triggering_element']['#name'] == 'student_1[previous_students]') {
+      
+  // Load or create the pursuit
+  $pursuit = !empty($form_state['pursuit']) ? $form_state['pursuit'] : entity_create('pursuit', array('type' => 'cmf_solo'));
+  
+  // Load or create student 
+  $student = !empty($form_state['pursuit']) ? student_load($pursuit->pursuit_student_reference['und'][0]['target_id'])
+    : entity_create('student', array('type'=>'basic_student'));
+
+  if (!empty($form_state['triggering_element']['#name']) &&
+      $form_state['triggering_element']['#name'] == 'student_1[previous_students]') {
     // Form rebuilt triggered by ajax call
     // Triggered by the student select ajax
-      // Selected an existing student
+    // Selected an existing student
     $student = student_load($form_state['values']['student_1']['previous_students']);
 
-  } else {
-    // NOT triggered by ajax
-    // Check if editing a pursuit
-    if (!empty($form_state['pursuit'])) {
-      $student = student_load($form_state['pursuit']->pursuit_student_reference['und'][0]['target_id']);
-      $form['student_1']['previous_students']['#default_value'] = $form_state['pursuit']->pursuit_student_reference['und'][0]['target_id'];
-//      $form['student_1']['instrument']['#default_value'] = $form_state['pursuit']->field_instrument_list['und'][0]['value'];
-    } 
-  }
-    // Let's check if we've been here before. If so, we need to reset the #default_values
+  } 
+  
+  $student_wrapper  = entity_metadata_wrapper('student', $student);
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  
+  $selected = empty($pursuit_wrapper->pursuit_student_reference[0]->getIdentifier()) ? '' :
+      $pursuit_wrapper->pursuit_student_reference[0]->getIdentifier(); 
+  $form['student_1']['previous_students']['#default_value'] = $selected;
+  $form_temp = array();
+  
+  // Attach grade
+  field_attach_form('pursuit', $pursuit, $form_temp, $form_state, NULL, array('field_name' => 'field_grade'));
+  unset($form_temp['#parents']);
+  $form['student_1']['field_grade'] =  $form_temp['field_grade'];
+  
+  // Let's check if we've been here before. If so, we need to reset the #default_values
   if (!empty($form_state['visited']) && $form_state['visited']) {
     // Form is being revisited
     $stored_values = &$form_state['step_information'][$current_step]['stored_values']['student_1'];
     $form['student_1']['previous_students']['#default_value'] = $stored_values['previous_students'];
+    $form['student_1']['field_grade']['und']['#default_value'] = $stored_values['field_grade']['und'][0]['value'];
     // $form['student_1']['instrument']['#default_value'] = $stored_values['instrument'];
     $student = student_load($stored_values['previous_students']);
   }
@@ -247,7 +260,7 @@ function mlmta_cmf_solo_student_1_process($form, &$form_state) {
  * Submit hook for student 1
  */
 function mlmta_cmf_solo_student_1_submit_hook($form, &$form_state) {
-  
+
 }
 
 
@@ -301,7 +314,7 @@ function mlmta_cmf_solo_pieces($form, &$form_state) {
   // Attach level to form
   field_attach_form('pursuit', $pursuit_temp,$form_temp, $form_state, NULL, array('field_name'=>'field_piano_solo_level'));
   $form['field_piano_solo_level'] = $form_temp['field_piano_solo_level']; // Uses the same field as DSF  @todo Be sure the CMF pursuit type contains this field
-  $form['field_piano_solo_level']['#weight'] = -69;
+  $form['field_piano_solo_level']['#weight'] = 49;
 
   
   $piece1 = entity_create('piece', array('type' => 'basic_piece'));
@@ -336,8 +349,8 @@ function mlmta_cmf_solo_pieces($form, &$form_state) {
     $form['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     $form['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece2_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     
-    //unset($form_state['input']['field_piano_solo_level']);
-    //$form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
+    unset($form_state['input']['field_piano_solo_level']);
+    $form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
     unset($form_state['input']['pursuit_preferred_time']);
     $form['pursuit_preferred_time'][LANGUAGE_NONE]['#default_value'] = $stored_values['pursuit_preferred_time'][LANGUAGE_NONE][0]['value'];
 
@@ -420,6 +433,10 @@ function mlmta_cmf_solo_form_submit($form, &$form_state) {
   
   // Get value for level
   $level = $form_state['step_information'][$pieces_step]['stored_values']['field_piano_solo_level']['und'][0]['value'];
+  
+  //
+  // Get value for grade
+  $grade = $form_state['step_information'][$student_1_step]['stored_values']['student_1']['field_grade']['und'][0]['value'];
 
   // Create or update pursuit
   if(!empty($form_state['pursuit'])) {
@@ -433,6 +450,7 @@ function mlmta_cmf_solo_form_submit($form, &$form_state) {
   // $pursuit_wrapper->field_instrument_list[0]->set($instrument_key);
   $pursuit_wrapper->pursuit_teacher_reference->set(array($teacher_1_id));
   $pursuit_wrapper->field_piano_solo_level->set($level);
+  $pursuit_wrapper->field_grade = $grade;
   $pursuit_wrapper->field_event_reference->set(variable_get('tenuto_cmf_event', NULL));
   pursuit_update_name($pursuit);
   pursuit_update_duration($pursuit);
