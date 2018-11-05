@@ -431,6 +431,9 @@ function mlmta_cmf_solo_form_submit($form, &$form_state) {
   
   // $instrument_key = $form_state['step_information'][$student_1_step]['stored_values']['student_1']['instrument'];
   
+  // Get value for preferred time
+  $preferred_time = $form_state['step_information'][$pieces_step]['stored_values']['pursuit_preferred_time']['und'][0]['value'];
+  
   // Get value for level
   $level = $form_state['step_information'][$pieces_step]['stored_values']['field_piano_solo_level']['und'][0]['value'];
   
@@ -449,6 +452,7 @@ function mlmta_cmf_solo_form_submit($form, &$form_state) {
   $pursuit_wrapper->pursuit_piece_reference->set(array($piece_1_id, $piece_2_id));
   // $pursuit_wrapper->field_instrument_list[0]->set($instrument_key);
   $pursuit_wrapper->pursuit_teacher_reference->set(array($teacher_1_id));
+  $pursuit_wrapper->pursuit_preferred_time->set($preferred_time);
   $pursuit_wrapper->field_piano_solo_level->set($level);
   $pursuit_wrapper->field_grade = $grade;
   $pursuit_wrapper->field_event_reference->set(variable_get('tenuto_cmf_event', NULL));
