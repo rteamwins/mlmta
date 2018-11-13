@@ -567,7 +567,7 @@ function mlmta_cmf_forms_produce_registration_csv() {
   
   $cardinality_index = array(
     'pursuit_piece_reference' => 2,
-  'pursuit_student_reference' => 3,
+  'pursuit_student_reference' => 2,
   );
   
   $header_array = mlmta_base_form_build_csv_header($structure, $cardinality_index);

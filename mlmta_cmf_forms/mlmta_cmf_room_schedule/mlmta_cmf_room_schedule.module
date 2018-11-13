@@ -91,6 +91,16 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
     $timeblock_wrapper = entity_metadata_wrapper('timeblock', $timeblock_id);
     $output .= '<h1>Room: ' . $room_name . '. Time block: '.$timeblock_wrapper->title->value() .'.</h1>';
     $output .= '<p>Times: '. date('m/d/Y g:i A',$timeblock_wrapper->timeblock_date->value->value()) . ' to ' . date('g:i A',$timeblock_wrapper->timeblock_date->value2->value()).'</p>';
+    $judges = array();
+    foreach ($timeblock_wrapper->timeblock_personnel_reference->getIterator() as $personnel_wrapper) {
+      if ($personnel_wrapper->personnel_judge->value()) {
+        $judges[] = $personnel_wrapper->label();
+      }
+    }
+    if (count($judges) > 0) {
+      $output .=' <p>Judges: '. implode(' ,', $judges) . '</p>';
+    }
+    
     $pursuit_ids = array_keys($result['pursuit']);
     $rows = array();
     $header = array(
