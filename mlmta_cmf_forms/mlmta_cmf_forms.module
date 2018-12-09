@@ -10,7 +10,8 @@ function mlmta_cmf_forms_menu(){
     'title' => t('Constance Murray solo registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_cmf_solo_form'),
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'mlmta_base_module_activated_access_check',
+    'access arguments' => array(variable_get('tenuto_cmf_event')),
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_cmf_solo.inc',
   );
@@ -73,7 +74,6 @@ function mlmta_cmf_forms_edit_access_check($pursuit) {
   }
   return user_access('edit paid pursuits');
 }
-
 
 /**
  * Implements hook_pursuit_calculate_trimmed_duration_alter().
@@ -154,6 +154,13 @@ function mlmta_cmf_forms_configuration_form($form, &$form_state) {
   $cutoff = format_date(variable_get('tenuto_cmf_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
   $format = "m-d-Y h:i A";
   
+  $event_id = variable_get('tenuto_cmf_event');
+  $form_activation = strtotime('2000-1-1 12:00:00');
+  if ($event_id) {
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
+  } 
+  
   $events = event_load_all();
   if (user_access('administer event types')) {
     if (!empty($events)) {
@@ -169,7 +176,7 @@ function mlmta_cmf_forms_configuration_form($form, &$form_state) {
         '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
         '#required' => TRUE,
         '#options' => $options,
-        '#default_value' => variable_get('tenuto_cmf_event',NULL),
+        '#default_value' => $event_id,
       );
     }
   }
@@ -209,6 +216,18 @@ function mlmta_cmf_forms_configuration_form($form, &$form_state) {
      '#description' => 'This is the date when the event will take place.',
      '#default_value' => $event_date, 
      '#date_format' => 'm-d-Y',
+  );
+  
+  $form['event_activation_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Activation date'),
+  );
+  $form['event_activation_fieldset']['tenuto_cmf_form_activation'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select an activation date for the registration form'),
+     '#description' => 'The form will not be shown before this date.',
+     '#default_value' => $form_activation, 
+     '#date_format' => $format,
   );
   
   $form['deadline_fieldset'] = array(
@@ -272,6 +291,7 @@ function mlmta_cmf_forms_configuration_form_submit($form, &$form_state) {
   $uts = strtotime($form_state['values']['tenuto_cmf_form_deadline']);
   $cutoff = strtotime($form_state['values']['tenuto_cmf_form_cutoff']);
   $event_date = strtotime($form_state['values']['tenuto_cmf_event_date']);
+  $activation_date = strtotime($form_state['values']['tenuto_cmf_form_activation']);
   
   variable_set('tenuto_cmf_form_deadline', $uts);
   variable_set('tenuto_cmf_form_cutoff', $cutoff);
@@ -287,11 +307,13 @@ function mlmta_cmf_forms_configuration_form_submit($form, &$form_state) {
     $event = event_load($form_state['values']['tenuto_cmf_event']);
     $event->cutoff = $cutoff;
     $event->deadline = $uts;
+    $event->activation = $activation_date;
     $event_wrapper = entity_metadata_wrapper('event', $event);
     $event_wrapper->field_event_date = $event_date;
     $event_wrapper->field_event_location = $form_state['values']['tenuto_cmf_event_location'];
     $event_wrapper->field_chair_name =  $form_state['values']['tenuto_cmf_chair_name'];
     $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_cmf_chair_email_address'];
+    
     event_save($event);   
   }
   drupal_set_message(t('The settings have been saved.'));

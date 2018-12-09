@@ -921,8 +921,6 @@ function mlmta_base_form_build_csv_row($wrapper, $structure, $cardinality_index,
 
 /**
  * Builds the header row for the CSV. Should be called just with one record
- *
- * DUMPED! Do not use. Just create an array with titles, lazy bum
  * 
  * @param Array $structure
  *      The tree structure of column titles keyed by field name
@@ -964,4 +962,20 @@ function mlmta_base_form_build_csv_header($structure, $cardinality_index,  &$row
     }
   }
   return $row;
+}
+
+/**
+ * Checks that form is activated (after activation date)
+ * @param Event $event
+ *  Event id. If null, then do not allow
+ */
+function mlmta_base_module_activated_access_check($event_id) {
+  if (!user_is_logged_in() || !$event_id) return FALSE;
+  $event = event_load($event_id);
+  if ($event->activation < time()) {
+    return TRUE;
+  } else {
+    drupal_set_message(t('This form is not yet active. Activation date is: %activation', array('%activation' => format_date($event->activation, 'custom', 'm/d/Y h:ia'))), 'error');
+    return FALSE;
+  }
 }

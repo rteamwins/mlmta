@@ -10,7 +10,8 @@ function mlmta_solo_forms_menu(){
     'title' => t('Solo registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_piano_solo_form'),
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'mlmta_base_module_activated_access_check',
+    'access arguments' => array(variable_get('tenuto_solo_event')),
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_solo.inc',
   );
@@ -19,7 +20,8 @@ function mlmta_solo_forms_menu(){
     'title' => t('Ensemble registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_ensemble_form'),
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'mlmta_base_module_activated_access_check',
+    'access arguments' => array(variable_get('tenuto_solo_event')),
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_ensemble.inc',
   );
@@ -230,6 +232,13 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
   $cutoff = format_date(variable_get('tenuto_solo_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
   $format = "m-d-Y h:i A";
 
+  $event_id = variable_get('tenuto_solo_event');
+  $form_activation = strtotime('2000-1-1 12:00:00');
+  if ($event_id) {
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
+  } 
+  
   $events = event_load_all();  
   if (user_access('administer event types')) {
     if (!empty($events)) {
@@ -244,7 +253,7 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
         '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
         '#required' => TRUE,
         '#options' => $options,
-        '#default_value' => variable_get('tenuto_solo_event',NULL),
+        '#default_value' => $event_id,
       );
     } 
   }
@@ -286,7 +295,18 @@ function mlmta_solo_forms_configuration_form($form, &$form_state) {
      '#date_format' => 'M-d-Y',
   );
   
-
+  $form['event_activation_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Activation date'),
+  );
+  $form['event_activation_fieldset']['tenuto_solo_form_activation'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select an activation date for the registration form'),
+     '#description' => 'The form will not be shown before this date.',
+     '#default_value' => $form_activation, 
+     '#date_format' => $format,
+  );
+  
   $form['deadline_fieldset'] = array(
     '#type' => 'fieldset',
     '#title' => t('Deadline'),
@@ -348,6 +368,7 @@ function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
   $uts = strtotime($form_state['values']['tenuto_solo_form_deadline']);
   $cutoff = strtotime($form_state['values']['tenuto_solo_form_cutoff']);
   $event_date = strtotime($form_state['values']['tenuto_solo_event_date']);
+  $activation_date = strtotime($form_state['values']['tenuto_solo_form_activation']);
   
   variable_set('tenuto_solo_form_deadline', $uts);
   variable_set('tenuto_solo_form_cutoff', $cutoff);
@@ -362,6 +383,7 @@ function mlmta_solo_forms_configuration_form_submit($form, &$form_state) {
     $event = event_load($form_state['values']['tenuto_solo_event']);
     $event->cutoff = $cutoff;
     $event->deadline = $uts;
+    $event->activation = $activation_date;
     $event_wrapper = entity_metadata_wrapper('event', $event);
     $event_wrapper->field_event_date = $event_date;
     $event_wrapper->field_event_location = $form_state['values']['tenuto_solo_event_location'];
