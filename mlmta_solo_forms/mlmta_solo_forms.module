@@ -10,7 +10,7 @@ function mlmta_solo_forms_menu(){
     'title' => t('Solo registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_piano_solo_form'),
-    'access callback' => 'mlmta_base_module_activated_access_check',
+    'access callback' => 'mlmta_base_module_date_access_check',
     'access arguments' => array(variable_get('tenuto_solo_event')),
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_solo.inc',

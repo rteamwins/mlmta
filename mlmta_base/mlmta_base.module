@@ -965,17 +965,34 @@ function mlmta_base_form_build_csv_header($structure, $cardinality_index,  &$row
 }
 
 /**
- * Checks that form is activated (after activation date)
- * @param Event $event
+ * Checks that form is activated (after activation date) and before the deadline
+ * @param $event_id
  *  Event id. If null, then do not allow
  */
-function mlmta_base_module_activated_access_check($event_id) {
+function mlmta_base_module_date_access_check($event_id) {
   if (!user_is_logged_in() || !$event_id) return FALSE;
   $event = event_load($event_id);
   if ($event->activation < time()) {
-    return TRUE;
+    
+    return mlmta_base_module_deadline_check($event);
+  
   } else {
     drupal_set_message(t('This form is not yet active. Activation date is: %activation', array('%activation' => format_date($event->activation, 'custom', 'm/d/Y h:ia'))), 'error');
+    return FALSE;
+  }
+}
+
+/**
+ * Checks that the deadline for the form has not passed
+ * @param Event $event
+ *  Event id. If null, then do not allow
+ */
+function mlmta_base_module_deadline_check($event) {
+  $deadline = $event->deadline;
+  if (time()<=$deadline || user_access('edit pursuit after deadline')) {
+    return TRUE;
+  } else {
+    drupal_set_message(t('The deadline for this event is past. Deadline date is: $deadline', array('%deadline' => form_date($event->deadline, 'custom', 'm/d/Y h:ia'))), 'error');
     return FALSE;
   }
 }
