@@ -3,23 +3,23 @@
 /**
  * Implements hook_entity_info().
  */
-function student_entity_info() {
+function mlmta_playathon_slot_entity_info() {
   $return = array(
-    'student' => array(
-      'label' => t('Student'),
-      'entity class' => 'Student',
-      'controller class' => 'StudentController',
-      'base table' => 'student',
+    'mlmta_playathon_slot' => array(
+      'label' => t('PlayathonSlot'),
+      'entity class' => 'PlayathonSlot',
+      'controller class' => 'PlayathonSlotController',
+      'base table' => 'mlmta_playathon_slot',
       'fieldable' => TRUE,
       'entity keys' => array(
-        'id' => 'student_id',
+        'id' => 'mlmta_playathon_slot_id',
         'bundle' => 'type',
       ),
       'bundle keys' => array(
         'bundle' => 'type',
       ),
       'bundles' => array(),
-      'load hook' => 'student_load',
+      'load hook' => 'mlmta_playathon_slot_load',
       'view modes' => array(
         'partial' => array(
           'label' => t('Partial'),
@@ -29,38 +29,34 @@ function student_entity_info() {
           'label' => t('Default'),
           'custom settings' => FALSE,
         ),
-        'with_points' => array(
-          'label' => t('With points'),
-          'custom settings' => TRUE,
-        ),
       ),
       'label callback' => 'entity_class_label',
       'uri callback' => 'entity_class_uri',
-      'module' => 'student',
-      'access callback' => 'student_access',
+      'module' => 'mlmta_playathon_slot',
+      'access callback' => 'mlmta_playathon_slot_access',
     ),
   );
-  $return['student_type'] = array(
-    'label' => t('Student Type'),
-    'entity class' => 'StudentType',
-    'controller class' => 'StudentTypeController',
-    'base table' => 'student_type',
+  $return['mlmta_playathon_slot_type'] = array(
+    'label' => t('PlayathonSlot Type'),
+    'entity class' => 'PlayathonSlotType',
+    'controller class' => 'PlayathonSlotTypeController',
+    'base table' => 'mlmta_playathon_slot_type',
     'fieldable' => FALSE,
-    'bundle of' => 'student',
+    'bundle of' => 'mlmta_playathon_slot',
     'exportable' => TRUE,
     'entity keys' => array(
       'id' => 'id',
       'name' => 'type',
       'label' => 'label',
     ),
-    'module' => 'student',
+    'module' => 'mlmta_playathon_slot',
     // Enable the entity API's admin UI.
     'admin ui' => array(
-      'path' => 'admin/structure/scheduling/student-types',
-      'file' => 'student.admin.inc',
-      'controller class' => 'StudentTypeUIController',
+      'path' => 'admin/structure/scheduling/mlmta-playathon-slot-types',
+      'file' => 'mlmta_playathon_slot.admin.inc',
+      'controller class' => 'PlayathonSlotTypeUIController',
     ),
-    'access callback' => 'student_type_access',
+    'access callback' => 'mlmta_playathon_slot_type_access',
   );
 
   return $return;
@@ -69,13 +65,13 @@ function student_entity_info() {
 /**
  * Implements hook_entity_info_alter().
  */
-function student_entity_info_alter(&$entity_info) {
-  foreach (student_types() as $type => $info) {
-    $entity_info['student']['bundles'][$type] = array(
+function mlmta_playathon_slot_entity_info_alter(&$entity_info) {
+  foreach (mlmta_playathon_slot_types() as $type => $info) {
+    $entity_info['mlmta_playathon_slot']['bundles'][$type] = array(
       'label' => $info->label,
       'admin' => array(
-        'path' => 'admin/structure/scheduling/student-types/manage/%student_type',
-        'real path' => 'admin/structure/scheduling/student-types/manage/' . $type,
+        'path' => 'admin/structure/scheduling/mlmta-playathon-slot-types/manage/%mlmta_playathon_slot_type',
+        'real path' => 'admin/structure/scheduling/mlmta-playathon-slot-types/manage/' . $type,
         'bundle argument' => 5,
       ),
     );
@@ -85,149 +81,114 @@ function student_entity_info_alter(&$entity_info) {
 /**
  * Implements hook_menu().
  */
-function student_menu() {
+function mlmta_playathon_slot_menu() {
   $items = array();
 
-  $items['student/add'] = array(
-    'title' => 'Add student',
-    'page callback' => 'student_admin_add_page',
-    'access arguments' => array('administer student entities'),
-    'file' => 'student.admin.inc',
+  $items['mlmta-playathon-slot/add'] = array(
+    'title' => 'Add Playathon Slot',
+    'page callback' => 'mlmta_playathon_slot_admin_add_page',
+    'access arguments' => array('administer playathon slot entities'),
+    'file' => 'mlmta_playathon_slot.admin.inc',
     'type' => MENU_LOCAL_ACTION,
-    'tab_parent' => 'student',
-    'tab_root' => 'student',
+    'tab_parent' => 'mlmta-playathon-slot',
+    'tab_root' => 'mlmta-playathon-slot',
   );
 
-  $student_uri = 'student/%student';
-  $student_uri_argument_position = 1;
+  $mlmta_playathon_slot_uri = 'mlmta-playathon-slot/%mlmta_playathon_slot';
+  $mlmta_playathon_slot_uri_argument_position = 1;
 
-  $items[$student_uri] = array(
+  $items[$mlmta_playathon_slot_uri] = array(
     'title callback' => 'entity_label',
-    'title arguments' => array('student', $student_uri_argument_position),
-    'page callback' => 'student_view',
-    'page arguments' => array($student_uri_argument_position),
+    'title arguments' => array('mlmta_playathon_slot', $mlmta_playathon_slot_uri_argument_position),
+    'page callback' => 'mlmta_playathon_slot_view',
+    'page arguments' => array($mlmta_playathon_slot_uri_argument_position),
     'access callback' => 'entity_access',
-    'access arguments' => array('view', 'student', $student_uri_argument_position),
-    'file' => 'student.pages.inc',
+    'access arguments' => array('view', 'mlmta_playathon_slot', $mlmta_playathon_slot_uri_argument_position),
+    'file' => 'mlmta_playathon_slot.pages.inc',
   );
 
-  $items[$student_uri . '/view'] = array(
+  $items[$mlmta_playathon_slot_uri . '/view'] = array(
     'title' => 'View',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
 
-  $items[$student_uri . '/delete'] = array(
-    'title' => 'Delete student',
-    'title callback' => 'student_label',
-    'title arguments' => array($student_uri_argument_position),
+  $items[$mlmta_playathon_slot_uri . '/delete'] = array(
+    'title' => 'Delete PlayathonSlot',
+    'title callback' => 'mlmta_playathon_slot_label',
+    'title arguments' => array($mlmta_playathon_slot_uri_argument_position),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('student_delete_form', $student_uri_argument_position),
+    'page arguments' => array('mlmta_playathon_slot_delete_form', $mlmta_playathon_slot_uri_argument_position),
     'access callback' => 'entity_access',
-    'access arguments' => array('edit', 'student', $student_uri_argument_position),
-    'file' => 'student.admin.inc',
+    'access arguments' => array('edit', 'mlmta_playathon_slot', $mlmta_playathon_slot_uri_argument_position),
+    'file' => 'mlmta_playathon_slot.admin.inc',
   );
 
-  $items[$student_uri . '/edit'] = array(
+  $items[$mlmta_playathon_slot_uri . '/edit'] = array(
     'title' => 'Edit',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('student_form', $student_uri_argument_position),
+    'page arguments' => array('mlmta_playathon_slot_form', $mlmta_playathon_slot_uri_argument_position),
     'access callback' => 'entity_access',
-    'access arguments' => array('edit', 'student', $student_uri_argument_position),
-    'file' => 'student.admin.inc',
+    'access arguments' => array('edit', 'mlmta_playathon_slot', $mlmta_playathon_slot_uri_argument_position),
+    'file' => 'mlmta_playathon_slot.admin.inc',
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
   );
 
-  foreach (student_types() as $type => $info) {
-    $items['student/add/' . $type] = array(
-      'title' => 'Add student',
-      'page callback' => 'student_add',
+  foreach (mlmta_playathon_slot_types() as $type => $info) {
+    $items['mlmta-playathon-slot/add/' . $type] = array(
+      'title' => 'Add PlayathonSlot',
+      'page callback' => 'mlmta_playathon_slot_add',
       'page arguments' => array(2),
       'access callback' => 'entity_access',
-      'access arguments' => array('create', 'student', $type),
-      'file' => 'student.admin.inc',
+      'access arguments' => array('create', 'mlmta_playathon_slot', $type),
+      'file' => 'mlmta_playathon_slot.admin.inc',
     );
   }
 
-  $items['admin/structure/scheduling/student-types/%student_type/delete'] = array(
+  $items['admin/structure/scheduling/mlmta-playathon-slot-types/%mlmta_playathon_slot_type/delete'] = array(
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('student_type_form_delete_confirm', 5),
-    'access arguments' => array('administer student types'),
+    'page arguments' => array('mlmta_playathon_slot_type_form_delete_confirm', 5),
+    'access arguments' => array('administer PlayathonSlot types'),
     'weight' => 1,
     'type' => MENU_NORMAL_ITEM,
-    'file' => 'student.admin.inc',
+    'file' => 'mlmta_playathon_slot.admin.inc',
   );
 
-  $items['student/%student/link'] = array(
-    'title' => 'Student lookup and linking',
-    'description' => 'Look up a student and link to teacher\s account',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('student_link_form', 1),
-    'access arguments' => array('edit own student entities'),
-  );
-  
-  $items['student/%student/unlink'] = array(
-    'title' => 'Student unlink',
-    'description' => 'Unlink a student from the teacher account',
-    'page callback' => 'student_unlink',
-    'page arguments' => array(1),
-    'access arguments' => array('edit own student entities'),
-  );
-  $items['student/vbo-unlink/%'] = array(
-    'title' => 'Student unlink',
-    'description' => 'Unlink a student from the teacher account for VBO callback',
-    'page callback' => 'student_vbo_unlink',
-    'page arguments' => array(2),
-    'access arguments' => array('edit any student entities'),
-  );
-  
-  $items['student/%student/detailed-view'] = array(
-    'title' => 'Student detailed view',
-    'description' => 'Detailed view of student',
-    'page callback' => 'student_detailed_view',
-    'page arguments' => array(1),
-    'access arguments' => array('view student entities'),
-    'file' => 'student.pages.inc',
-  );  
+
   return $items;
 }
 
 /**
  * Implements hook_permission().
  */
-function student_permission() {
+function mlmta_playathon_slot_permission() {
   $permissions = array(
-    'administer student types' => array(
-      'title' => t('Administer student types'),
-      'description' => t('Allows users to configure student types and their fields.'),
+    'administer mlmta_playathon_slot types' => array(
+      'title' => t('Administer PlayathonSlot types'),
+      'description' => t('Allows users to configure PlayathonSlot types and their fields.'),
       'restrict access' => TRUE,
     ),
-    'create student entities' => array(
-      'title' => t('Create students'),
-      'description' => t('Allows users to create students.'),
+    'create mlmta_playathon_slot entities' => array(
+      'title' => t('Create PlayathonSlot'),
+      'description' => t('Allows users to create PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
-    'view student entities' => array(
-      'title' => t('View students'),
-      'description' => t('Allows users to view students.'),
+    'view playathon entities' => array(
+      'title' => t('View PlayathonSlot'),
+      'description' => t('Allows users to view PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
-    'edit any student entities' => array(
-      'title' => t('Edit any students'),
-      'description' => t('Allows users to edit any students.'),
+    'edit any playathon entities' => array(
+      'title' => t('Edit any PlayathonSlot'),
+      'description' => t('Allows users to edit any PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
     
-    'edit any linked student entities' => array(
-      'title' => t('Edit any linked students'),
-      'description' => t('Allows users to edit any linked students.'),
-      'restrict access' => TRUE,
-    ),
-    'edit own student entities' => array(
-      'title' => t('Edit own students'),
-      'description' => t('Allows users to edit own students.'),
+    'edit own playathon entities' => array(
+      'title' => t('Edit own PlayathonSlot'),
+      'description' => t('Allows users to edit own PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
   );
@@ -239,69 +200,50 @@ function student_permission() {
 /**
  * Implements hook_entity_property_info_alter().
  */
-function student_entity_property_info_alter(&$info) {
-  $properties = &$info['student']['properties'];
+function mlmta_playathon_slot_entity_property_info_alter(&$info) {
+  $properties = &$info['mlmta_playathon_slot']['properties'];
   $properties['created'] = array(
     'label' => t("Date created"),
     'type' => 'date',
-    'description' => t("The date the student was posted."),
+    'description' => t("The date the PlayathonSlot was posted."),
     'setter callback' => 'entity_property_verbatim_set',
-    'setter permission' => 'administer student entities',
+    'setter permission' => 'administer playathon entities',
     'schema field' => 'created',
   );
   $properties['changed'] = array(
     'label' => t("Date changed"),
     'type' => 'date',
     'schema field' => 'changed',
-    'description' => t("The date the student was most recently updated."),
+    'description' => t("The date the PlayathonSlot was most recently updated."),
   );
   $properties['uid'] = array(
     'label' => t("Author"),
     'type' => 'user',
-    'description' => t("The author of the student."),
+    'description' => t("The author of the PlayathonSlot."),
     'setter callback' => 'entity_property_verbatim_set',
-    'setter permission' => 'administer student entities',
+    'setter permission' => 'administer mlmta_playathon_slot entities',
     'required' => TRUE,
     'schema field' => 'uid',
   );
   
-  $properties['student_id'] = array(
-    'label' => t('Student ID'),
+  $properties['mlmta_playathon_slot_id'] = array(
+    'label' => t('PlayathonSlot ID'),
     'type' => 'integer',
-    'description' => t('The ID of the student'),
-    'schema field' => 'student_id',
+    'description' => t('The ID of the PlayathonSlot'),
+    'schema field' => 'mlmta_playathon_slot_id',
   );
   
-  $properties['student_calculated_age'] = array(
-    'label' => t('Calculated age'),
-    'type' => 'text',
-    'description'=> t('Calculated age based on the student birthday and the cutoff date for the active event'),
-    'computed' => TRUE,
-    'getter callback' => 'student_calculate_age',
-    'getter permission' => 'view student entities',
-    'entity views field' => TRUE,
-  );
-  
-  $properties['student_calculated_time'] = array(
-    'label' => t('Calculated years with teacher'),
-    'type' => 'text',
-    'description'=> t('Calculated years with current teacher based on the cutoff date for the active event'),
-    'computed' => TRUE,
-    'getter callback' => 'student_calculate_years',
-    'getter permission' => 'view student entities',
-    'entity views field' => TRUE,
-  );
 }
 
 
 /*******************************************************************************
- ********************************* Student API's **********************************
+ ********************************* PlayathonSlot API's **********************************
  ******************************************************************************/
 
 /**
- * Access callback for student.
+ * Access callback for mlmta_playathon_slot.
  */
-function student_access($op, $student, $account = NULL, $entity_type = NULL) {
+function mlmta_playathon_slot_access($op, $mlmta_playathon_slot, $account = NULL, $entity_type = NULL) {
   global $user;
 
   if (!isset($account)) {
@@ -309,115 +251,102 @@ function student_access($op, $student, $account = NULL, $entity_type = NULL) {
   }
   switch ($op) {
     case 'create':
-      return user_access('administer student entities', $account)
-          || user_access('create student entities', $account);
+      return user_access('administer mlmta_playathon_slot entities', $account)
+          || user_access('create mlmta_playathon_slot entities', $account);
     case 'view':
-      return user_access('administer student entities', $account)
-          || user_access('view student entities', $account);
+      return user_access('administer mlmta_playathon_slot entities', $account)
+          || user_access('view mlmta_playathon_slot entities', $account);
     case 'edit':
       $current_user_wrapper = entity_metadata_wrapper('user', $account->uid);
-      $student_wrapper = entity_metadata_wrapper('student', $student);
-      return user_access('administer student entities')
-          || user_access('edit any student entities')
-          || (user_access('edit own student entities') && ($student->uid == $account->uid))
-          || (user_access('edit any linked student entities') && (in_array($current_user_wrapper->field_user_teacher_reference->raw(),
-                                                                           $student_wrapper->student_teacher_references->raw()))
-          );
+      $mlmta_playathon_slot_wrapper = entity_metadata_wrapper('mlmta_playathon_slot', $mlmta_playathon_slot);
+      return user_access('administer mlmta_playathon_slot entities')
+          || user_access('edit any mlmta_playathon_slot entities')
+          || (user_access('edit own mlmta_playathon_slot entities') && ($mlmta_playathon_slot->uid == $account->uid));
   }
 }
 
 /**
- * Load a student.
+ * Load a mlmta_playathon_slot.
  */
-function student_load($student_id, $reset = FALSE) {
-  $students = student_load_multiple(array($student_id), array(), $reset);
-  return reset($students);
+function mlmta_playathon_slot_load($mlmta_playathon_slot_id, $reset = FALSE) {
+  $mlmta_playathon_slots = mlmta_playathon_slot_load_multiple(array($mlmta_playathon_slot_id), array(), $reset);
+  return reset($mlmta_playathon_slots);
 }
 
 /**
- * Load multiple students based on certain conditions.
+ * Load multiple mlmta_playathon_slot based on certain conditions.
  */
-function student_load_multiple($student_ids = array(), $conditions = array(), $reset = FALSE) {
-  return entity_load('student', $student_ids, $conditions, $reset);
+function mlmta_playathon_slot_load_multiple($mlmta_playathon_slot_ids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('mlmta_playathon_slot', $mlmta_playathon_slot_ids, $conditions, $reset);
 }
 
 /**
- * Save student.
+ * Save mlmta_playathon_slot.
  */
-function student_save($student) {
-  return entity_save('student', $student);
+function mlmta_playathon_slot_save($mlmta_playathon_slot) {
+  return entity_save('mlmta_playathon_slot', $mlmta_playathon_slot);
 }
 
 /**
- * Delete single student.
+ * Delete single mlmta_playathon_slot.
  */
-function student_delete($student) {
-  entity_delete('student', entity_id('student' ,$student));
+function mlmta_playathon_slot_delete($mlmta_playathon_slot) {
+  entity_delete('mlmta_playathon_slot', entity_id('mlmta_playathon_slot' ,$mlmta_playathon_slot));
 }
 
 /**
- * Delete multiple students.
+ * Delete multiple mlmta_playathon_slots.
  */
-function student_delete_multiple($student_ids) {
-  entity_delete_multiple('student', $student_ids);
+function mlmta_playathon_slot_delete_multiple($mlmta_playathon_slot_ids) {
+  entity_delete_multiple('mlmta_playathon_slot', $mlmta_playathon_slot_ids);
 }
 
 
 /*******************************************************************************
- ****************************** Student Type API's ********************************
+ ****************************** PlayathonSlot Type API's ********************************
  ******************************************************************************/
 
 /**
- * Access callback for student Type.
+ * Access callback for mlmta_playathon_slot Type.
  */
-function student_type_access($op, $entity = NULL) {
-  return user_access('administer student types');
+function mlmta_playathon_slot_type_access($op, $entity = NULL) {
+  return user_access('administer mlmta_playathon_slot types');
 }
 
 /**
- * Load student Type.
+ * Load mlmta_playathon_slot Type.
  */
-function student_type_load($student_type) {
-  return student_types($student_type);
+function mlmta_playathon_slot_type_load($mlmta_playathon_slot_type) {
+  return mlmta_playathon_slot_types($mlmta_playathon_slot_type);
 }
 
 /**
- * List of student Types.
+ * List of mlmta_playathon_slot Types.
  */
-function student_types($type_name = NULL) {
-  $types = entity_load_multiple_by_name('student_type', isset($type_name) ? array($type_name) : FALSE);
+function mlmta_playathon_slot_types($type_name = NULL) {
+  $types = entity_load_multiple_by_name('mlmta_playathon_slot_type', isset($type_name) ? array($type_name) : FALSE);
   return isset($type_name) ? reset($types) : $types;
 }
 
 /**
- * Save student type entity.
+ * Save mlmta_playathon_slot type entity.
  */
-function student_type_save($student_type) {
-  return entity_save('student_type', $student_type);
+function mlmta_playathon_slot_type_save($mlmta_playathon_slot_type) {
+  return entity_save('mlmta_playathon_slot_type', $mlmta_playathon_slot_type);
 }
 
 /**
  * Delete single case type.
  */
-function student_type_delete($student_type) {
-  entity_delete('student_type', entity_id('student_type' ,$student_type));
+function mlmta_playathon_slot_type_delete($mlmta_playathon_slot_type) {
+  entity_delete('mlmta_playathon_slot_type', entity_id('mlmta_playathon_slot_type' ,$mlmta_playathon_slot_type));
 }
 
 /**
  * Delete multiple case types.
  */
-function student_type_delete_multiple($student_type_ids) {
-  entity_delete_multiple('student_type', $student_type_ids);
-}
-
-/**
-  * Implements hook_views_api().
-  */
-function student_views_api() {
-  return array(
-    'api' => 3,
-    'path' => drupal_get_path('module', 'student'),
-  );
+function mlmta_playathon_slot_type_delete_multiple($mlmta_playathon_slot_type_ids) {
+  entity_delete_multiple('mlmta_playathon_slot_type', $mlmta_playathon_slot_type_ids);
 }
 
 
@@ -429,18 +358,18 @@ function student_views_api() {
  * so that they get handled by the Entity and Field core functionality.
  * Node titles get treated in a similar manner.
  */
-function student_field_extra_fields() {
+function mlmta_playathon_slot_field_extra_fields() {
   $extra_fields = array();
   
   $form_elements['name'] = array(
     'label' => t('Name'),
-    'description' => t('The full name of this student'),
+    'description' => t('The full name of this mlmta_playathon_slot'),
     'weight' => -5,
   );
 
-  $display_elements['student_id'] = array(
-    'label' => t('Student ID'),
-    'description' => t('The ID of the student'),
+  $display_elements['mlmta_playathon_slot_id'] = array(
+    'label' => t('PlayathonSlot ID'),
+    'description' => t('The ID of the mlmta_playathon_slot'),
     'weight' => -6,
   );
   
@@ -452,13 +381,13 @@ function student_field_extra_fields() {
   
   $display_elements['name'] = array(
     'label' => t('Name'),
-    'description' => t('The full name of this student'),
+    'description' => t('The full name of this mlmta_playathon_slot'),
     'weight' => -5,
   );
 
-  foreach (student_types() as $type => $info) {
-    $extra_fields['student'][$type]['form'] = $form_elements;
-    $extra_fields['student'][$type]['display'] = $display_elements;
+  foreach (mlmta_playathon_slot_types() as $type => $info) {
+    $extra_fields['mlmta_playathon_slot'][$type]['form'] = $form_elements;
+    $extra_fields['mlmta_playathon_slot'][$type]['display'] = $display_elements;
   }
   return $extra_fields;
 }
@@ -466,1003 +395,131 @@ function student_field_extra_fields() {
 /**
  * Implements hook_admin_paths().
  */
-function student_admin_paths() {
+function mlmta_playathon_slot_admin_paths() {
   return array(
-    'student/*' => TRUE,
+    'mlmta-playathon-slot/*' => TRUE,
   );
 }
 
 
-/**
- * Implements hook_pursuit_insert().
- *
- * Creates a mutual reference to pursuits
- */
-function student_pursuit_insert($pursuit) {
-//  dpm($pursuit);
-  if (!isset($pursuit->do_not_process_flag) || $pursuit->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was really activated by a new reference in pursuit
-    
-    // Get all student reference fields from pursuit and iterate through those (at the moment it includes student and accompanist reference fields)
-    $reference_fields = _student_get_references($pursuit);
-    foreach ($reference_fields as $reference_field_name) {
-      // load all items from this reference field
-      $items = field_get_items('pursuit', $pursuit, $reference_field_name);
-      $items = is_array($items) ? $items : array();
-  //    dpm($items);
-      foreach ($items as $item) {
-        $student = student_load($item['target_id']);
-        $student_wrapper = entity_metadata_wrapper('student', $student);
-        $targets = array();
-        $student_items = (array) field_get_items('student', $student, 'student_pursuit_reference' );
-  //      dpm($student_items);
-        foreach ($student_items as $student_item) {
-          $targets[] = $student_item['target_id'];
-        }
-  //      dpm($targets);
-        if (!in_array($pursuit->pursuit_id, $targets)) {
-          $student->student_pursuit_reference[LANGUAGE_NONE][] = array('target_id' => $pursuit->pursuit_id);
-          $student->do_not_process_flag = TRUE;
-          $student_wrapper->save();
-        }
-      } 
-    }
-  }
-}
-
-/**
- * Implements hook_pursuit_update().
- *
- * Creates a mutual reference to pursuit 
- */
-function student_pursuit_update($pursuit) {
-  if (!isset($pursuit->do_not_process_flag) || $pursuit->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was activated by a "fresh" update of personne, and not from a "bouncing" update
-    
-    // Get all student reference fields from pursuit and iterate through those (at the moment it includes student and accompanist reference fields)
-    $reference_fields = _student_get_references($pursuit);
-    foreach ($reference_fields as $reference_field_name) {
-      $field_items_in_new = field_get_items('pursuit', $pursuit, $reference_field_name);
-      $field_items_in_old = field_get_items('pursuit', $pursuit->original, $reference_field_name);
-  
-      $targets_in_new = is_array($field_items_in_new) ? array_map(function ($v) {return $v['target_id'];}, $field_items_in_new) : array();
-      $targets_in_old = is_array($field_items_in_old) ? array_map(function ($v) {return $v['target_id'];}, $field_items_in_old) : array();
-      $new_targets = array_diff($targets_in_new, $targets_in_old);
-      $deleted_targets = array_diff($targets_in_old, $targets_in_new);
-    
-      // process new targets first
-      foreach ($new_targets as $new_target) {
-        $student = student_load($new_target);
-        $student_wrapper = entity_metadata_wrapper('student', $student);
-        $targets = array();
-        $student_items = (array) field_get_items('student', $student, 'student_pursuit_reference' );
-        foreach ($student_items as $student_item) {
-          $targets[] = $student_item['target_id'];
-        }
-        if (!in_array($pursuit->pursuit_id, $targets)) {
-          $student->student_pursuit_reference[LANGUAGE_NONE][] = array('target_id' => $pursuit->pursuit_id);
-          // Flag timeblock so that it does not trigger personnel_timeblock_update
-          $student->do_not_process_flag = TRUE;
-          $student_wrapper->save();
-        }
-      }
-      
-      // process deleted targets second
-      foreach ($deleted_targets as $deleted_target) {
-        $student = student_load($deleted_target);
-        $student_wrapper = entity_metadata_wrapper('student', $student);
-        if (isset($student->student_pursuit_reference[LANGUAGE_NONE])) {
-          foreach($student->student_pursuit_reference[LANGUAGE_NONE] as $key => $field_content) {
-            if ($field_content['target_id'] == $pursuit->pursuit_id) {
-              unset($student->student_pursuit_reference[LANGUAGE_NONE][$key]); 
-            }
-          }
-          $student->do_not_process_flag = TRUE;
-          $student_wrapper->save();
-        }
-      }    
-    }
-  }
-}
-
-/**
- * Implements hook_pursuit_delete().
- * Deletes the reference to a deleted pursuit
- */
-function student_pursuit_delete($pursuit) {
-  if (!isset($pursuit->do_not_process_flag) || $pursuit->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was activated by a "fresh" update of personne, and not from a "bouncing" update
-  
-    $reference_fields = _student_get_references($pursuit);
-    
-    foreach ($reference_fields as $reference_field_name) {
-      $field_items = field_get_items('pursuit', $pursuit, $reference_field_name);
-      $targets= is_array($field_items) ? array_map(function ($v) {return $v['target_id'];}, $field_items) : array();   
-      // process deleted targets second
-      foreach ($targets as $target) {
-        $student = student_load($target);
-        if (isset($student->student_pursuit_reference[LANGUAGE_NONE])) {
-          foreach($student->student_pursuit_reference[LANGUAGE_NONE] as $delta => $field_content) {
-            if ($field_content['target_id'] == $pursuit->pursuit_id) {
-              unset($student->student_pursuit_reference[LANGUAGE_NONE][$delta]); 
-            }
-          }
-          $student->do_not_process_flag = TRUE;
-          student_save($student);
-        }
-      }    
-    }
-  }
-}
-
-
-
-/**
- * Implements hook_family_insert().
- *
- * Creates/synchronizes a mutual reference to family
- */
-function student_family_insert($family) {
-  if (!isset($family->do_not_process_flag) || $family->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was really activated by a new reference in family
-    
-    // load all items from this reference field
-    $items =  field_get_items('family', $family, 'family_student_references');
-    $items = $items ? $items : array();
-    foreach ($items as $item) {
-      $student = student_load($item['target_id']);
-      $targets = array();
-      $student_items = (array) field_get_items('student', $student, 'field_student_family' );
-      foreach ($student_items as $student_item) {
-        $targets[] = $student_item['target_id'];
-      }
-      if (!in_array($family->family_id, $targets)) {
-        $student->field_student_family[LANGUAGE_NONE][] = array('target_id' => $family->family_id);
-        $student->do_not_process_flag = TRUE;
-        student_save($student);
-      }
-    } 
-    
-  }
-}
-
-/**
- * Implements hook_family_update().
- *
- * Creates a mutual reference to family 
- */
-function student_family_update($family) {
-  if (!isset($family->do_not_process_flag) || $family->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was activated by a "fresh" update of personne, and not from a "bouncing" update
-     
-    $field_items_in_new =  field_get_items('family', $family, 'family_student_references');
-    $field_items_in_old =  field_get_items('family', $family->original, 'family_student_references');
-    $field_items_in_new = $field_items_in_new ? $field_items_in_new : array();
-    $field_items_in_old = $field_items_in_old ? $field_items_in_old : array();
-    
-    $targets_in_new = array_map(function ($v) {return $v['target_id'];}, $field_items_in_new);
-    $targets_in_old = array_map(function ($v) {return $v['target_id'];}, $field_items_in_old);
-    $new_targets = array_diff($targets_in_new, $targets_in_old);
-    $deleted_targets = array_diff($targets_in_old, $targets_in_new);
-  
-    // process new targets first
-    foreach ($new_targets as $new_target) {
-      $student = student_load($new_target);
-
-      $targets = array();
-      $student_items = (array) field_get_items('student', $student, 'field_student_family');
-      foreach ($student_items as $student_item) {
-        $targets[] = $student_item['target_id'];
-      }
-      if (!in_array($family->family_id, $targets)) {
-        $student->field_student_family[LANGUAGE_NONE][] = array('target_id' => $family->family_id);
-        // Flag timeblock so that it does not trigger personnel_timeblock_update
-        $student->do_not_process_flag = TRUE;
-        student_save($student);
-      }
-    }
-    
-    // process deleted targets second
-    foreach ($deleted_targets as $deleted_target) {
-      $student = student_load($deleted_target);
-      $student_wrapper = entity_metadata_wrapper('student', $student);
-      if (isset($student->field_student_family[LANGUAGE_NONE])) {
-        foreach($student->field_student_family[LANGUAGE_NONE] as $key => $field_content) {
-          if ($field_content['target_id'] == $family->family_id) {
-            unset($student->field_student_family[LANGUAGE_NONE][$key]); 
-          }
-        }
-        $student->do_not_process_flag = TRUE;
-        $student_wrapper->save();
-      }
-    }    
-    
-  }
-}
-
-/**
- * Implements hook_family_delete().
- * Deletes the reference to a deleted family
- */
-function student_family_delete($family) {
-
-  if (!isset($family->do_not_process_flag) || $family->do_not_process_flag != TRUE) {
-    // This flag indicates that this hook was activated by a "fresh" update of personne, and not from a "bouncing" update
-  
-    $field_items =  field_get_items('family', $family, 'family_student_references');
-    $field_items = $field_items ? $field_items : array();
-    $targets= array_map(function ($v) {return $v['target_id'];}, $field_items);   
-    // process deleted targets second
-    foreach ($targets as $target) {
-      $student = student_load($target);
-      if (isset($student->field_student_family[LANGUAGE_NONE])) {
-        foreach($student->field_student_family[LANGUAGE_NONE] as $delta => $field_content) {
-          if ($field_content['target_id'] == $family->family_id) {
-            unset($student->field_student_family[LANGUAGE_NONE][$delta]); 
-          }
-        }
-        $student->do_not_process_flag = TRUE;
-        student_save($student);
-      }
-    }    
-    
-  }
-}
-
-/**
- * Get all student entity reference field names from a pursuit
- * @param $pursuit
- *    The pursuit to extract the field names of student entity references
- * @return array
- *    An array of field names
- */
-function _student_get_references($pursuit) {
-  list($pursuit_id, ,$pursuit_bundle) = entity_extract_ids('pursuit', $pursuit);
-  
-  $my_fields = field_info_instances('pursuit', $pursuit_bundle);
-  $reference_fields = array();
-  
-  // Loop through all the fields of this entity type and bundle to find entityreference fields that point to student entities 
-  foreach ($my_fields as $my_field) {
-    $my_field_info = field_info_field($my_field['field_name']);
-    if ($my_field_info['type'] == 'entityreference' && $my_field_info['settings']['target_type'] == 'student') {
-      $reference_fields[] = $my_field['field_name'];
-    }
-  }
-  return $reference_fields;
-}
-
-/**
- * Links a student to a teacher account, basically adding a reference to the teacher
- */
-function student_link_form($form, &$form_state, $student) {
-  $form['student_id'] = array(
-    '#type' => 'value',
-    '#value' => $student->student_id,
-  );
-  return confirm_form($form,
-    t('Are you sure you want to link student %name to your teacher account?', array('%name' => $student->name)),
-    'student-front' ,'Student will appear under your list and you will be able to register him/her'    
-  );
-}
-
-/**
- * Submit handler
- */
-function student_link_form_submit($form, &$form_state) {
-  global $user;
-  $user_wrapper = entity_metadata_wrapper('user', $user);
-  $teacher_id = $user_wrapper->field_user_teacher_reference->getIdentifier();
-  $values = $form_state['values'];
-  $student_wrapper = entity_metadata_wrapper('student', $values['student_id']);
-  $current_ids = (array) $student_wrapper->student_teacher_references->raw();
-  if (!in_array($teacher_id, $current_ids)) {
-    $student_wrapper->student_teacher_references[] = $teacher_id;
-    $student_wrapper->save();    
-  }
-  drupal_set_message(t('Student %name has been linked to your teacher account.', array('%name'=>$student_wrapper->label())),'status');
-  $form_state['redirect'] = 'student-front';
-}
-
-
-/**
- * Unlink student from teacher account
- * @param Student $student
- */
-function student_unlink($student) {
-  $student_wrapper = entity_metadata_wrapper('student', $student);
-  if (!empty($student_wrapper->student_teacher_references->raw())) {
-    global $user;
-    $user_wrapper = entity_metadata_wrapper('user', $user);
-    $teacher_id = $user_wrapper->field_user_teacher_reference->getIdentifier();
-    $teacher_ids = $student_wrapper->student_teacher_references->raw();
-    $key = array_search($teacher_id, $teacher_ids);
-    unset($teacher_ids[$key]);
-    $student_wrapper->student_teacher_references = $teacher_ids;
-    $student_wrapper->save();
-    drupal_set_message(t('Student %sname has been unlinked from teacher %tname', array('%sname'=>$student_wrapper->name->value(),'%tname'=>$user_wrapper->field_first_name->value() .' '. $user_wrapper->field_last_name->value())));
-    $destination = drupal_get_destination();
-    if($destination != current_path()) {
-      drupal_goto($destination);
-    } else {
-      // Let's go to front
-      drupal_goto('<front');
-    }
-  }
-}
-
-/**
- * Unlink student from teacher account admin version (unlinks ALL)
- * @param Student $student
- */
-function student_unlink_admin($student) {
-  $student_wrapper = entity_metadata_wrapper('student', $student);
-  if (!empty($student_wrapper->student_teacher_references->raw())) {
-    $student_wrapper->student_teacher_references = array();
-    $student_wrapper->save();    
-  }
-}
-
-/**
- * Callback to unlink students via VBO
- */
-function student_vbo_unlink_action(&$student, $context) {
-  student_unlink_admin($student);
-}
-
-/**
- * Implements hook_action_info().
- * Student unlink and link actions for VBO
- */
-function student_action_info() {
-  $return =  array(
-    'student_vbo_unlink_action' => array(
-      'type' => 'student',
-      'label' => t('Unlink a student from its teacher'),
-      'behavior' => array('changes_property'),
-      'configurable' => FALSE,
-      'vbo_configurable' => FALSE,
-      'permissions' => array('edit any student entities'),
-      'triggers' => array('any'),
-    ),
-    'student_vbo_link_action' => array(
-      'type' => 'student',
-      'label' => t('Link a student to a teacher'),
-      'behavior' => array('changes_property'),
-      'configurable' => TRUE,
-      'vbo_configurable' => FALSE,
-      'permissions' => array('edit any student entities'),
-      'triggers' => array('any'),
-    ),
-  );
-  
-  return $return;
-}
-
-/**
- * Form for selecting teacher to link to student action
- */
-function student_vbo_link_action_form($settings, &$form_state) {
-  $form = array();
-  $options  = teacher_teacher_map();
-  $form['teacher'] = array(
-    '#type' => 'select', 
-    '#title' => t('Teacher'),
-    '#options' => $options,
-    '#required' => TRUE,
-  );
-  return $form;
-}
-
-function student_vbo_link_action_submit($form, $form_state) {
-  $return = array(); 
-  $return['teacher'] = $form_state['values']['teacher'];
-  return $return; //Note, return value here must be an array.
-}
-
-function student_vbo_link_action(&$student, $context) {
-  $teacher_id = $context['teacher'];
-  $student_wrapper = entity_metadata_wrapper('student', $student);
-  $current_ids = (array) $student_wrapper->student_teacher_references->raw();
-  if (!in_array($teacher_id, $current_ids)) {
-    $student_wrapper->student_teacher_references[] = $teacher_id;
-    $student_wrapper->save();    
-  }
-}
-
-
-/**
- * Getter property callback to calculate age based on current active event
- * This getter only works for managers or admins who have active events. Not for regular users!
- * 
- */
-function student_calculate_age($data, array $options, $name, $type, $info)  {
-  $bdayunix = $info['parent']->student_birthday->value();
-  $diff = 'Unknown';
-  if (!empty($bdayunix)) {
-    $active_event_id = event_switch_get_active_event(); // This will only work for managers and admin!!!!
-    if ($active_event_id) {
-      $bday = new DateTime(date('Y-m-d', $bdayunix));
-      $event = event_load($active_event_id);
-      $diff = student_calculate_age_helper($bdayunix, $event->cutoff); 
-    } else {
-      $diff = 'Select event!';
-    }
-  }
-  return $diff;
-}
-
-/**
- * Helper to calculate the age
- */
-function student_calculate_age_helper($b_day_unix, $cutoff_date_unix) {
-  $bday_object = new DateTime(date('Y-m-d', $b_day_unix));
-  $cutoff_object = new DateTime(date('Y-m-d' , $cutoff_date_unix));
-  $age = $cutoff_object->diff($bday_object);
-  $diff = $age->y;
-  return $diff;
-}
-/**
- * Getter property callback to calculate years with current teacher based on current active event
- */
-function student_calculate_years($data, array $options, $name, $type, $info)  {
-  $bdayunix = $info['parent']->student_date_with_teacher->value();
-  $diff = 'Unknown';
-  if (!empty($bdayunix)) {
-    $active_event_id = event_switch_get_active_event(); 
-    if ($active_event_id) {
-      $bday = new DateTime(date('Y-m-d', $bdayunix));
-      $event = event_load($active_event_id);
-      $cutoff = date('Y-m-d' , $event->cutoff);
-      $cutoffdt = new DateTime($cutoff);
-      $age = $cutoffdt->diff($bday);
-      $diff = '';
-      if ($age->y > 0) {
-        $diff = $age->y . 'y ';
-      }
-      if ($age->m > 0) {
-        $diff .= $age->m . 'm';
-      }      
-    }
-  }
-  return $diff;
-}
-
-/**
- * Implements template_preprocess_views_view_table().
- * Adds a css class to rows of a students_1 views table if the birthday or starting date are not provided
- */
-function student_preprocess_views_view_table(&$vars) {
-  if ($vars['view']->name == 'students_1') {
-    $result = $vars['view']->result;
-    foreach ($result as $index => $row) {
-      if (isset($row->field_student_birthday) && empty($row->field_student_birthday[0]['raw']['value'])) {
-        $vars['row_classes'][$index][] = 'birthday-missing';
-      }
-      if (isset($row->field_student_date_with_teacher) && empty($row->field_student_date_with_teacher[0]['raw']['value'])) {
-        $vars['row_classes'][$index][] = 'starting-date-missing';
-      }
-    }
-  }
-}
 
 //////////////////////////////// DEFAULT FIELDS //////////////////////
 
 /**
- * Add default fields to a Student entity bundle
+ * Add default fields to a PlayathonSlot entity bundle
  *
- * - student_first_name
- * - student_last_name
- * - student_age
- * - student_email
+ * - mlmta_playathon_slot_first_name
+ * - mlmta_playathon_slot_last_name
+ * - mlmta_playathon_slot_age
+ * - mlmta_playathon_slot_email
  *
  * 
- * @param $student_type
- *   A student type object.
+ * @param $mlmta_playathon_slot_type
+ *   A mlmta_playathon_slot type object.
  */
 
-function student_add_default_fields($student_type) {
-  // Add first name field
-  $field = field_info_field('student_first_name');
-  $field_instance = field_info_instance('student', 'student_first_name', $student_type->type);
-  
-  if(empty($field)) {
+function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
+    // Add mlmta_playathon_slot_pursuit_reference
+    $field = field_info_field('mlmta_playathon_slot_pursuit_reference');
+    $field_instance = field_info_instance('mlmta_playathon_slot', 'mlmta_playathon_slot_pursuit_reference', $mlmta_playathon_slot_type->type);
+    
+  if (empty($field)) {
     $field = array(
-      'field_name' => 'student_first_name',
-      'type' => 'text',
-      'cardinality' => 1,
-      'translatable' => FALSE,
+      'field_name' => 'mlmta_playathon_slot_pursuit_reference',
+      'type' => 'entityreference',
       'settings' => array(
-        'max_length' => 255,
+        'target_type' => 'pursuit',
+        'handler_settings' => array('target_bundles' => NULL),
       ),
-      'active' => 1,
+      'cardinality' => -1,
+      'translatable' => FALSE,
     );
-    field_create_field($field);
+    field_create_field($field); 
   }
   
   if(empty($field_instance)){
     $instance = array(
-      'field_name' => 'student_first_name',
-      'entity_type' => 'student',
-      'bundle' => $student_type->type,
-      'label' => 'Student first name',
-      'required' => TRUE,
+      'field_name' => 'mlmta_playathon_slot_pursuit_reference',
+      'entity_type' => 'mlmta_playathon_slot',
+      'bundle' => $mlmta_playathon_slot_type->type,
+      'label' => 'Pursuit reference',
+      'required' => false,
       'widget' => array(
-        'type' => 'text_textfield',
-        'settings' => array(
-          'size' => 60,
-        ),
+        'type' => 'options_select'
       ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'text_default',
-        ),
-      ),
-      'description' => 'Enter the first name of the student',
-    );
-    field_create_instance($instance);      
-  }
-  
-  // Add last name field
-  $field = field_info_field('student_last_name');
-  $field_instance = field_info_instance('student', 'student_last_name', $student_type->type);
-  
-  if(empty($field)) {
-    $field = array(
-      'field_name' => 'student_last_name',
-      'type' => 'text',
-      'cardinality' => 1,
-      'translatable' => FALSE,
       'settings' => array(
-        'max_length' => 255,
-      ),
-      'active' => 1,
-    );
-    field_create_field($field);
-  }
-  
-  if(empty($field_instance)){
-    $instance = array(
-      'field_name' => 'student_last_name',
-      'entity_type' => 'student',
-      'bundle' => $student_type->type,
-      'label' => 'Student last name',
-      'required' => TRUE,
-      'widget' => array(
-        'type' => 'text_textfield',
-        'settings' => array(
-          'size' => 60,
-        ),
+        'target_type' => 'pursuit',
+        'handler_settings' => array('target_bundles' => NULL),
       ),
       'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'text_default',
-        ),
+        'default' => array('label' => 'inline', 'type' => 'entityreference_label'),
       ),
-      'description' => 'Enter the last name of the student',
     );
     field_create_instance($instance);      
   }
   
-  // Add age field
-  $field = field_info_field('student_age');
-  $field_instance = field_info_instance('student', 'student_age', $student_type->type);
   
-  if(empty($field)) {
+  
+  // Add mlmta_playathon_slot_time
+  $field = field_info_field('mlmta_playathon_slot_time');
+  $field_instance = field_info_instance('mlmta_playathon_slot', 'mlmta_playathon_slot_time', $mlmta_playathon_slot_type->type);
+  
+  if (empty($field)) {
     $field = array(
-      'field_name' => 'student_age',
-      'type' => 'text',
-      'cardinality' => 1,
-      'translatable' => FALSE,
+      'field_name' => 'mlmta_playathon_slot_time',
+      'type' => 'datetime',
+      'module' => 'date',
       'settings' => array(
-        'max_length' => 255,
-      ),
-      'active' => 1,
-    );
-    field_create_field($field);
-  }
-  
-  if(empty($field_instance)){
-    $instance = array(
-      'field_name' => 'student_age',
-      'entity_type' => 'student',
-      'bundle' => $student_type->type,
-      'label' => 'Student age',
-      'required' => TRUE,
-      'widget' => array(
-        'type' => 'text_textfield',
-        'settings' => array(
-          'size' => 60,
+        'granularity' => array (
+          'month' => 'month',
+          'day' => 'day',
+          'hour' => 'hour',
+          'minute' => 'minute',
+          'year' => 'year',
+          'second' => 0,
         ),
+        'tz_handling' => 'site',
       ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'text_default',
-        ),
-      ),
-      'description' => 'Enter the age of the student',
-    );
-    field_create_instance($instance);      
-  }
-  
-  // Add email field
-  $field = field_info_field('student_email');
-  $field_instance = field_info_instance('student', 'student_email', $student_type->type);
-  
-  if(empty($field)) {
-    $field = array(
-      'field_name' => 'student_email',
-      'type' => 'email',
-      'module' => 'email',
       'cardinality' => 1,
       'translatable' => FALSE,
-      'active' => 1,
     );
-    field_create_field($field);
+    field_create_field($field); 
   }
-  
+
   if(empty($field_instance)){
     $instance = array(
-      'field_name' => 'student_email',
-      'entity_type' => 'student',
-      'bundle' => $student_type->type,
-      'label' => 'Student email',
-      'required' => TRUE,
+      'field_name' => 'mlmta_playathon_slot_time',
+      'entity_type' => 'mlmta_playathon_slot',
+      'bundle' => $mlmta_playathon_slot_type->type,
+      'label' => 'Birthday',
+      'description' => 'Enter the mlmta_playathon_slot\'s time. If left blank, the system will be unable to calculate the age for this mlmta_playathon_slot',
+      'required' => false,
       'widget' => array(
-        'type' => 'email_textfield',
-        'settings' => array(
-          'size' => 60,
-        ),
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'email_default',
-        ),
-      ),
-      'description' => 'Enter the email of the student or parent',
-    );
-    field_create_instance($instance);      
-  }
-  
-        // Add student_pursuit_reference
-    $field = field_info_field('student_pursuit_reference');
-    $field_instance = field_info_instance('student', 'student_pursuit_reference', $student_type->type);
-    
-    if (empty($field)) {
-      $field = array(
-        'field_name' => 'student_pursuit_reference',
-        'type' => 'entityreference',
-        'settings' => array(
-          'target_type' => 'pursuit',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'cardinality' => -1,
-        'translatable' => FALSE,
-      );
-      field_create_field($field); 
-    }
-    
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'student_pursuit_reference',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Pursuit reference',
-        'required' => false,
-        'widget' => array(
-          'type' => 'options_select'
-        ),
-        'settings' => array(
-          'target_type' => 'pursuit',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'display' => array(
-          'default' => array('label' => 'inline', 'type' => 'entityreference_label'),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-    
-    // Add field_student_phone
-    $field = field_info_field('field_student_phone');
-    $field_instance = field_info_instance('student', 'field_student_phone', $student_type->type);
-    
-    if(empty($field)) {
-      $field = array(
-        'field_name' => 'field_student_phone',
-        'type' => 'text',
-        'cardinality' => 1,
-        'translatable' => FALSE,
-        'settings' => array(
-          'max_length' => 255,
-        ),
+        'weight' => 2,
+        'type' => 'date_popup',
+        'module' => 'date',
         'active' => 1,
-      );
-      field_create_field($field);
-    }
-    
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'field_student_phone',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Student phone',
-        'description' => t('Optional'),
-        'required' => FALSE,
-        'widget' => array(
-          'type' => 'text_textfield',
-          'settings' => array(
-            'size' => 60,
-          ),
+        'settings' => array (
+          'input_format' => 'm/d/Y h:ia',
+          'year_range' => '-50:0',
+          'increment' => 1,
+          'label_position' => 'above',
+          'no_fieldset' => 0,
         ),
-        'display' => array(
-          'default' => array(
-            'label' => 'above',
-            'type' => 'text_default',
-          ),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-    
-    // Add student_birthday
-    $field = field_info_field('student_birthday');
-    $field_instance = field_info_instance('student', 'student_birthday', $student_type->type);
-    
-    if (empty($field)) {
-      $field = array(
-        'field_name' => 'student_birthday',
-        'type' => 'datetime',
-        'module' => 'date',
-        'settings' => array(
-          'granularity' => array (
-            'month' => 'month',
-            'day' => 'day',
-            'hour' => 0,
-            'minute' => 0,
-            'year' => 'year',
-            'second' => 0,
-          ),
-          'tz_handling' => 'site',
-        ),
-        'cardinality' => 1,
-        'translatable' => FALSE,
-      );
-      field_create_field($field); 
-    }
-
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'student_birthday',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Birthday',
-        'description' => 'Enter the student\'s birthday. If left blank, the system will be unable to calculate the age for this student',
-        'required' => false,
-        'widget' => array(
-          'weight' => 2,
-          'type' => 'date_popup',
-          'module' => 'date',
-          'active' => 1,
-          'settings' => array (
-            'input_format' => 'm/d/Y',
-            'year_range' => '-50:0',
-            'increment' => 1,
-            'label_position' => 'above',
-            'no_fieldset' => 0,
-          ),
-        ),
-        'settings' => array(
-          'default_value' => 'blank',
-          'default_value_code' => '',
-        ),
-        'display' => array(
-          'default' => array(
-            'label' => 'above',
-            'type' => 'date_default',
-            'settings' => array('format_type' => 'short'),
-            'module' => 'date',
-          ),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-    
-    // Add student_date_with_teacher
-    $field = field_info_field('student_date_with_teacher');
-    $field_instance = field_info_instance('student', 'student_date_with_teacher', $student_type->type);
-    
-    if (empty($field)) {
-      $field = array(
-        'field_name' => 'student_date_with_teacher',
-        'type' => 'datetime',
-        'module' => 'date',
-        'settings' => array(
-          'granularity' => array (
-            'month' => 'month',
-            'day' => 'day',
-            'hour' => 0,
-            'minute' => 0,
-            'year' => 'year',
-            'second' => 0,
-          ),
-          'tz_handling' => 'site',
-        ),
-        'cardinality' => 1,
-        'translatable' => FALSE,
-      );
-      field_create_field($field); 
-    }
-
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'student_date_with_teacher',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Starting date for lessons with current teacher',
-        'description' => 'Enter the date when this student started with the current teacher. If left blank, the system will be unable to calculate number of years with current teacher.',
-        'required' => false,
-        'widget' => array(
-          'weight' => 2,
-          'type' => 'date_popup',
-          'module' => 'date',
-          'active' => 1,
-          'settings' => array (
-            'input_format' => 'm/d/Y',
-            'year_range' => '-50:0',
-            'increment' => 1,
-            'label_position' => 'above',
-            'no_fieldset' => 0,
-          ),
-        ),
-        'settings' => array(
-          'default_value' => 'blank',
-          'default_value_code' => '',
-        ),
-        'display' => array(
-          'default' => array(
-            'label' => 'above',
-            'type' => 'date_default',
-            'settings' => array('format_type' => 'short'),
-            'module' => 'date',
-          ),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-    
-    // Add field_student_family
-    $field = field_info_field('field_student_family');
-    $field_instance = field_info_instance('student', 'field_student_family', $student_type->type);
-    
-    if (empty($field)) {
-      $field = array(
-        'field_name' => 'field_student_family',
-        'type' => 'entityreference',
-        'settings' => array(
-          'target_type' => 'family',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'cardinality' => 1,
-        'translatable' => FALSE,
-      );
-      field_create_field($field); 
-    }
-    
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'field_student_family',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Family tag',
-        'description' => t('This family tag will link siblings together for registration purposes. Use a tag ONLY IF this student <b>has siblings in the festival</b>. Otherwise leave as "None".'),
-        'required' => false,
-        'widget' => array(
-          'type' => 'options_select'
-        ),
-        'settings' => array(
-          'target_type' => 'pursuit',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'display' => array(
-          'default' => array('label' => 'inline', 'type' => 'entityreference_label'),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-    
-    // Add student_teacher_references
-    $field = field_info_field('student_teacher_references');
-    $field_instance = field_info_instance('student', 'student_teacher_references', $student_type->type);
-    
-    if (empty($field)) {
-      $field = array(
-        'field_name' => 'student_teacher_references',
-        'type' => 'entityreference',
-        'settings' => array(
-          'target_type' => 'teacher',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'cardinality' => -1,
-        'translatable' => FALSE,
-      );
-      field_create_field($field); 
-    }
-    
-    if(empty($field_instance)){
-      $instance = array(
-        'field_name' => 'student_teacher_references',
-        'entity_type' => 'student',
-        'bundle' => $student_type->type,
-        'label' => 'Teachers',
-        'description' => t('Active teachers linked to this student.'),
-        'required' => false,
-        'widget' => array(
-          'type' => 'options_select'
-        ),
-        'settings' => array(
-          'target_type' => 'teacher',
-          'handler_settings' => array('target_bundles' => NULL),
-        ),
-        'display' => array(
-          'default' => array('label' => 'inline', 'type' => 'entityreference_label'),
-        ),
-      );
-      field_create_instance($instance);      
-    }
-  // Add student_total_points
-  $field = field_info_field('student_total_points');
-  $field_instance = field_info_instance('student', 'student_total_points', $student_type->type);
-
-  if(empty($field)) {
-    $field = array(
-      'field_name' => 'student_total_points',
-      'type' => 'number_integer',
-      'module' => 'number',
-      'cardinality' => 1,
-      'translatable' => FALSE,
-    );
-    field_create_field($field);
-  }
-  if(empty($field_instance)){
-    $instance = array(
-      'field_name' => 'student_total_points',
-      'entity_type' => 'student',
-      'bundle' => $student_type->type,
-      'label' => 'Accumulated points',
-//      'required' => TRUE,
-      'widget' => array(
-        'type' => 'number',
-        'module' => 'number',
       ),
       'settings' => array(
-        'min' => '',
-        'max' => '',
-        'prefix' => '',
-        'suffix' => '',
-        'user_register_form' => FALSE,
-      ),
-      'tenuto_settings' => array(
-        'hide_in_form' => TRUE,
+        'default_value' => 'blank',
+        'default_value_code' => '',
       ),
       'display' => array(
         'default' => array(
           'label' => 'above',
-          'type' => 'number_integer',
-          'settings' => array(
-            'thousand_separator' => '',
-            'decimal_separator' => '.',
-            'scale' => 0,
-            'prefix_suffix' => TRUE,
-          ),
+          'type' => 'date_default',
+          'settings' => array('format_type' => 'short'),
+          'module' => 'date',
         ),
       ),
     );
     field_create_instance($instance);      
   }
-
 }

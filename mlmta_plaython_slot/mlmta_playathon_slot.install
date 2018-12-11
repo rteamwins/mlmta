@@ -3,27 +3,27 @@
 /**
  * Implements hook_schema().
  */
-function student_schema() {
+function mlmta_playathon_slot_schema() {
   $schema = array();
 
-  $schema['student'] = array(
-    'description' => 'The base table for students.',
+  $schema['mlmta_playathon_slot'] = array(
+    'description' => 'The base table for Plaython Slots.',
     'fields' => array(
-      'student_id' => array(
-        'description' => 'The primary identifier for the student.',
+      'mlmta_playathon_slot_id' => array(
+        'description' => 'The primary identifier for the Plaython Slot.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'type' => array(
-        'description' => 'The type (bundle) of this student.',
+        'description' => 'The type (bundle) of this Plaython Slot.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'name' => array(
-        'description' => 'The full name of the student.',
+        'description' => 'The full name of the Plaython Slot.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -35,28 +35,28 @@ function student_schema() {
         'not null' => TRUE,
       ),
       'created' => array(
-        'description' => 'The Unix timestamp when the student was created.',
+        'description' => 'The Unix timestamp when the Plaython Slot was created.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'changed' => array(
-        'description' => 'The Unix timestamp when the student was most recently saved.',
+        'description' => 'The Unix timestamp when the Plaython Slot was most recently saved.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
     ),
-    'primary key' => array('student_id'),
+    'primary key' => array('mlmta_playathon_slot_id'),
   );
 
-  $schema['student_type'] = array(
-    'description' => 'Stores information about all defined student types.',
+  $schema['mlmta_playathon_slot_type'] = array(
+    'description' => 'Stores information about all defined Plaython Slot types.',
     'fields' => array(
       'id' => array(
         'type' => 'serial',
         'not null' => TRUE,
-        'description' => 'Primary Key: Unique student type ID.',
+        'description' => 'Primary Key: Unique Plaython Slot type ID.',
       ),
       'type' => array(
         'description' => 'The machine-readable name of this type.',
@@ -104,20 +104,20 @@ function student_schema() {
 /**
  * Implements hook_install().
  */
-function student_install() {
-  // Create a basic student type
-  $student_type = array(
-    'type' => 'basic_student',
-    'label' => t('Basic student'),
-    'description' => t('A basic student type, can be used for solo performance.'),
+function mlmta_playathon_slot_install() {
+  // Create a basic Plaython Slot type
+  $mlmta_playathon_slot_type = array(
+    'type' => 'basic_plaython',
+    'label' => t('Basic Plaython Slot'),
+    'description' => t('A basic Plaython Slot type.'),
   );
   
-  $op = drupal_write_record('student_type', $student_type);
+  $op = drupal_write_record('mlmta_playathon_slot_type', $mlmta_playathon_slot_type);
   if ($op != FALSE) {
     // Notify Field API 
-    field_attach_create_bundle('student_type', 'basic_student');
-    $student_object = new stdClass;
-    $student_object->type = $student_type['type'];
-    student_add_default_fields($student_object);
+    field_attach_create_bundle('mlmta_playathon_slot_type', 'basic_playtahon');
+    $mlmta_playathon_slot_object = new stdClass;
+    $mlmta_playathon_slot_object->type = $mlmta_playathon_slot_type['type'];
+    mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_object);
   }
 }

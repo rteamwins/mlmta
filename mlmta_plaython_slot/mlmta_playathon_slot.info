@@ -1,14 +1,10 @@
-name = Student
-description = A Student entity for scheduling. Holds the basic information about the student
+name = PlaythonSlot
+description = A basic entity to store plaython slots FOR MLMTA
 package = Scheduling
 core = 7.x
 
 dependencies[] = entity
-dependencies[] = views
 dependencies[] = scheduling
-dependencies[] = email
 
-dependencies[] = date
-dependencies[] = date_api
 
-files[] = student.controller.inc
+files[] = mlmta_playathon_slot.controller.inc

@@ -1,6 +1,6 @@
 <?php
 
-class StudentController extends EntityAPIController {
+class PlayathonSlotController extends EntityAPIController {
 
   public function create(array $values = array()) {
     global $user;
@@ -15,28 +15,28 @@ class StudentController extends EntityAPIController {
   }
 
   public function buildContent($entity, $view_mode = 'full', $langcode = NULL, $content = array()) {
-    //$wrapper = entity_metadata_wrapper('student', $entity);
+    //$wrapper = entity_metadata_wrapper('mlmta_playathon_slot', $entity);
     // $content['author'] = array('#markup' => t('Created by: !author', array('!author' => $wrapper->uid->name->value(array('sanitize' => TRUE)))));
 
-    $extra_fields = field_extra_fields_get_display('student', $entity->type, $view_mode);
+    $extra_fields = field_extra_fields_get_display('mlmta_playathon_slot', $entity->type, $view_mode);
     
-    // Make student id themed like default field
-    if (!empty($extra_fields['student_id'] && $extra_fields['student_id']['visible'])) {
-      $content['student_id'] = array(
+    // Make mlmta_playathon_slot id themed like default field
+    if (!empty($extra_fields['mlmta_playathon_slot_id'] && $extra_fields['mlmta_playathon_slot_id']['visible'])) {
+      $content['mlmta_playathon_slot_id'] = array(
         '#theme' => 'field',
-        '#weight' => $extra_fields['student_id']['weight'],
-        '#title' =>t('Student ID'),
+        '#weight' => $extra_fields['mlmta_playathon_slot_id']['weight'],
+        '#title' =>t('PlayathonSlot ID'),
         '#access' => TRUE,
         '#label_display' => 'inline',
         '#view_mode' => $view_mode,
         '#language' => LANGUAGE_NONE,
-        '#field_name' => 'field_fake_student_id',
+        '#field_name' => 'field_fake_mlmta_playathon_slot_id',
         '#field_type' => 'number_integer',
-        '#entity_type' => 'student',
+        '#entity_type' => 'mlmta_playathon_slot',
         '#bundle' => $entity->type,
-        '#items' => array(array('value' => $entity->student_id)),
+        '#items' => array(array('value' => $entity->mlmta_playathon_slot_id)),
         '#formatter' => 'text_default',
-        0 => array('#markup' => check_plain($entity->student_id))
+        0 => array('#markup' => check_plain($entity->mlmta_playathon_slot_id))
       );        
     }
  
@@ -51,7 +51,7 @@ class StudentController extends EntityAPIController {
     //  '#language' => LANGUAGE_NONE,
     //  '#field_name' => 'field_fake_description',
     //  '#field_type' => 'text',
-    //  '#entity_type' => 'student',
+    //  '#entity_type' => 'mlmta_playathon_slot',
     //  '#bundle' => $entity->type,
     //  '#items' => array(array('value' => $entity->description)),
     //  '#formatter' => 'text_default',
@@ -61,14 +61,14 @@ class StudentController extends EntityAPIController {
     return parent::buildContent($entity, $view_mode, $langcode, $content);
   }
   
-  public function save($student, DatabaseTransaction $transaction = NULL){
-      $student->name = isset($student->student_first_name[LANGUAGE_NONE][0]) ? $student->student_first_name[LANGUAGE_NONE][0]['value'] : 'unknown';
-      $student->name .= isset($student->student_last_name[LANGUAGE_NONE][0]) ? ' ' .$student->student_last_name[LANGUAGE_NONE][0]['value'] : ' unknown';
-      return parent::save($student);
-  }
+  //public function save($mlmta_playathon_slot, DatabaseTransaction $transaction = NULL){
+  //    $mlmta_playathon_slot->name = isset($mlmta_playathon_slot->mlmta_playathon_slot_first_name[LANGUAGE_NONE][0]) ? $mlmta_playathon_slot->mlmta_playathon_slot_first_name[LANGUAGE_NONE][0]['value'] : 'unknown';
+  //    $mlmta_playathon_slot->name .= isset($mlmta_playathon_slot->mlmta_playathon_slot_last_name[LANGUAGE_NONE][0]) ? ' ' .$mlmta_playathon_slot->mlmta_playathon_slot_last_name[LANGUAGE_NONE][0]['value'] : ' unknown';
+  //    return parent::save($mlmta_playathon_slot);
+  //}
 }
 
-class StudentTypeController extends EntityAPIControllerExportable {
+class PlayathonSlotTypeController extends EntityAPIControllerExportable {
    public function create(array $values = array()) {
     $values += array(
       'label' => '',
@@ -78,7 +78,7 @@ class StudentTypeController extends EntityAPIControllerExportable {
   }
 
   /**
-   * Save Student Type.
+   * Save PlayathonSlot Type.
    */
   public function save($entity, DatabaseTransaction $transaction = NULL) {
     // Rebuild menu registry. We do not call menu_rebuild directly, but set
@@ -90,42 +90,42 @@ class StudentTypeController extends EntityAPIControllerExportable {
 }
 
 /**
- * UI controller for Student Type.
+ * UI controller for PlayathonSlot Type.
  */
-class StudentTypeUIController extends EntityDefaultUIController {
+class PlayathonSlotTypeUIController extends EntityDefaultUIController {
   /**
    * Overrides hook_menu() defaults.
    */
   public function hook_menu() {
     $items = parent::hook_menu();
-    $items[$this->path]['description'] = 'Manage Student types.';
+    $items[$this->path]['description'] = 'Manage PlayathonSlot types.';
     return $items;
   }
 }
 
 /**
- * Student class.
+ * PlayathonSlot class.
  */
-class Student extends Entity {
+class PlayathonSlot extends Entity {
   protected function defaultLabel() {
     return $this->name;
   }
 
   protected function defaultUri() {
-    return array('path' => 'student/' . $this->identifier());
+    return array('path' => 'mlmta-playathon-slot/' . $this->identifier());
   }
 }
 
 /**
- * Student Type class.
+ * PlayathonSlot Type class.
  */
-class StudentType extends Entity {
+class PlayathonSlotType extends Entity {
   public $type;
   public $label;
   public $weight = 0;
 
   public function __construct($values = array()) {
-    parent::__construct($values, 'student_type');
+    parent::__construct($values, 'mlmta_playathon_slot_type');
   }
 
   function isLocked() {
