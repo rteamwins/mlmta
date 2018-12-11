@@ -419,13 +419,13 @@ function mlmta_playathon_slot_admin_paths() {
  */
 
 function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
-    // Add mlmta_playathon_slot_pursuit_reference
-    $field = field_info_field('mlmta_playathon_slot_pursuit_reference');
-    $field_instance = field_info_instance('mlmta_playathon_slot', 'mlmta_playathon_slot_pursuit_reference', $mlmta_playathon_slot_type->type);
+    // Add playathon_pursuit_reference
+    $field = field_info_field('playathon_pursuit_reference');
+    $field_instance = field_info_instance('mlmta_playathon_slot', 'playathon_pursuit_reference', $mlmta_playathon_slot_type->type);
     
   if (empty($field)) {
     $field = array(
-      'field_name' => 'mlmta_playathon_slot_pursuit_reference',
+      'field_name' => 'playathon_pursuit_reference',
       'type' => 'entityreference',
       'settings' => array(
         'target_type' => 'pursuit',
@@ -439,7 +439,7 @@ function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
   
   if(empty($field_instance)){
     $instance = array(
-      'field_name' => 'mlmta_playathon_slot_pursuit_reference',
+      'field_name' => 'playathon_pursuit_reference',
       'entity_type' => 'mlmta_playathon_slot',
       'bundle' => $mlmta_playathon_slot_type->type,
       'label' => 'Pursuit reference',
