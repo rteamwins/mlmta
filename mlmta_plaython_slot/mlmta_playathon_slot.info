@@ -1,0 +1,14 @@
+name = Student
+description = A Student entity for scheduling. Holds the basic information about the student
+package = Scheduling
+core = 7.x
+
+dependencies[] = entity
+dependencies[] = views
+dependencies[] = scheduling
+dependencies[] = email
+
+dependencies[] = date
+dependencies[] = date_api
+
+files[] = student.controller.inc

@@ -992,7 +992,7 @@ function mlmta_base_module_deadline_check($event) {
   if (time()<=$deadline || user_access('edit pursuit after deadline')) {
     return TRUE;
   } else {
-    drupal_set_message(t('The deadline for this event is past. Deadline date is: $deadline', array('%deadline' => form_date($event->deadline, 'custom', 'm/d/Y h:ia'))), 'error');
+    drupal_set_message(t('The deadline for this event is past. Deadline date is: $deadline', array('%deadline' => format_date($event->deadline, 'custom', 'm/d/Y h:ia'))), 'error');
     return FALSE;
   }
 }
