@@ -7,23 +7,23 @@ function mlmta_playathon_slot_schema() {
   $schema = array();
 
   $schema['mlmta_playathon_slot'] = array(
-    'description' => 'The base table for Plaython Slots.',
+    'description' => 'The base table for Playathon Slots.',
     'fields' => array(
       'mlmta_playathon_slot_id' => array(
-        'description' => 'The primary identifier for the Plaython Slot.',
+        'description' => 'The primary identifier for the Playathon Slot.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'type' => array(
-        'description' => 'The type (bundle) of this Plaython Slot.',
+        'description' => 'The type (bundle) of this Playathon Slot.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'name' => array(
-        'description' => 'The full name of the Plaython Slot.',
+        'description' => 'The full name of the Playathon Slot.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -35,13 +35,13 @@ function mlmta_playathon_slot_schema() {
         'not null' => TRUE,
       ),
       'created' => array(
-        'description' => 'The Unix timestamp when the Plaython Slot was created.',
+        'description' => 'The Unix timestamp when the Playathon Slot was created.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'changed' => array(
-        'description' => 'The Unix timestamp when the Plaython Slot was most recently saved.',
+        'description' => 'The Unix timestamp when the Playathon Slot was most recently saved.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -51,12 +51,12 @@ function mlmta_playathon_slot_schema() {
   );
 
   $schema['mlmta_playathon_slot_type'] = array(
-    'description' => 'Stores information about all defined Plaython Slot types.',
+    'description' => 'Stores information about all defined Playathon Slot types.',
     'fields' => array(
       'id' => array(
         'type' => 'serial',
         'not null' => TRUE,
-        'description' => 'Primary Key: Unique Plaython Slot type ID.',
+        'description' => 'Primary Key: Unique Playathon Slot type ID.',
       ),
       'type' => array(
         'description' => 'The machine-readable name of this type.',
@@ -105,17 +105,17 @@ function mlmta_playathon_slot_schema() {
  * Implements hook_install().
  */
 function mlmta_playathon_slot_install() {
-  // Create a basic Plaython Slot type
+  // Create a basic Playathon Slot type
   $mlmta_playathon_slot_type = array(
-    'type' => 'basic_plaython',
-    'label' => t('Basic Plaython Slot'),
-    'description' => t('A basic Plaython Slot type.'),
+    'type' => 'basic_playathon',
+    'label' => t('Basic Playathon Slot'),
+    'description' => t('A basic Playathon Slot type.'),
   );
   
   $op = drupal_write_record('mlmta_playathon_slot_type', $mlmta_playathon_slot_type);
   if ($op != FALSE) {
     // Notify Field API 
-    field_attach_create_bundle('mlmta_playathon_slot_type', 'basic_playtahon');
+    field_attach_create_bundle('mlmta_playathon_slot_type', 'basic_playathon');
     $mlmta_playathon_slot_object = new stdClass;
     $mlmta_playathon_slot_object->type = $mlmta_playathon_slot_type['type'];
     mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_object);

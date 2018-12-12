@@ -1,5 +1,5 @@
 name = PlayathonSlot
-description = A basic entity to store plaython slots FOR MLMTA
+description = A basic entity to store playathon slots FOR MLMTA
 package = Scheduling
 core = 7.x
 
