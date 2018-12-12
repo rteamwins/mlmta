@@ -195,6 +195,8 @@ function mlmta_playathon_slot_form_validate($form, &$form_state) {
  */
 function mlmta_playathon_slot_form_submit($form, &$form_state) {
 
+  $mlmta_playathon_slot = $form_state['mlmta_playathon_slot'];
+  
   entity_form_submit_build_entity('mlmta_playathon_slot', $mlmta_playathon_slot, $form, $form_state);
   
   mlmta_playathon_slot_save($mlmta_playathon_slot);

@@ -1,0 +1,7 @@
+name = MLMTA SuperSat forms
+description = All functions related to forms for Super Saturday festival
+core = 7.x
+package = MLMTA
+
+dependencies[] = pursuit
+dependencies[] = mlmta_playathon_slot

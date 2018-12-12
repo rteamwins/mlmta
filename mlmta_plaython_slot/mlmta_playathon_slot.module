@@ -431,7 +431,7 @@ function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
         'target_type' => 'pursuit',
         'handler_settings' => array('target_bundles' => NULL),
       ),
-      'cardinality' => -1,
+      'cardinality' => 1,
       'translatable' => FALSE,
     );
     field_create_field($field); 
@@ -491,7 +491,7 @@ function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
       'field_name' => 'mlmta_playathon_slot_time',
       'entity_type' => 'mlmta_playathon_slot',
       'bundle' => $mlmta_playathon_slot_type->type,
-      'label' => 'Birthday',
+      'label' => 'Playathon Slot',
       'description' => 'Enter the mlmta_playathon_slot\'s time. If left blank, the system will be unable to calculate the age for this mlmta_playathon_slot',
       'required' => false,
       'widget' => array(
@@ -501,7 +501,7 @@ function mlmta_playathon_slot_add_default_fields($mlmta_playathon_slot_type) {
         'active' => 1,
         'settings' => array (
           'input_format' => 'm/d/Y h:ia',
-          'year_range' => '-50:0',
+          'year_range' => '-1:1',
           'increment' => 1,
           'label_position' => 'above',
           'no_fieldset' => 0,

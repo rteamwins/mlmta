@@ -1,0 +1,620 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+
+function mlmta_supersat_forms_menu(){
+  $items = array();
+  $items['supersat-kits-registration/new'] = array(
+    'title' => t('Super Saturday master class and KITS registration form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_supersat_kits_form'),
+    'access callback' => 'mlmta_base_module_date_access_check',
+    'access arguments' => array(variable_get('tenuto_supersat_event')),
+    'type' => MENU_CALLBACK,
+    'file' => 'mlmta_supersat_kits.inc',
+  );
+  
+  $items['supersat-playathon-registration/new'] = array(
+    'title' => t('Super Saturday Play-a-thon registratoin form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_supersat_playathon_form'),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+    'file' => 'mlmta_supersat_playathon.inc',
+  );
+   
+  $items['admin/supersat-kits-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'Super Saturday master class/KITS registration',
+    'page callback' => 'mlmta_supersat_kits_forms_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/supersat-playathon-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'Super Saturday Playathon registration',
+    'page callback' => 'mlmta_supersat_playathon_forms_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
+    'title' => 'Constance Murray general settings',
+    'description' => 'General settings for the CMF forms.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_supersat_forms_configuration_form'),
+    'type' => MENU_NORMAL_ITEM,
+   );
+
+   //$items['cmf-registrations-csv-download'] = array(
+   // 'title' => 'Download registrations as CSV',
+   // 'description' => 'Download CSV',
+   // 'access arguments' => array('create timeblock entities'),
+   // 'page callback' => 'mlmta_supersat_forms_produce_registration_csv',
+   // 'type' => MENU_CALLBACK,
+   //);
+   
+
+  return $items;
+}
+
+
+/**
+ * Checks that user is able to edit paid pursuit
+ */
+function mlmta_supersat_forms_edit_access_check($pursuit) {
+  if (!user_is_logged_in()) {
+    return FALSE;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if ($pursuit_wrapper->pursuit_order_paid->value() != 1) {
+    return TRUE;
+  }
+  return user_access('edit paid pursuits');
+}
+
+/**
+ * Implements hook_pursuit_calculate_trimmed_duration_alter().
+ */
+function mlmta_supersat_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
+  // Here I need to check if this
+  
+  if (in_array($pursuit->type, array('cmf_solo'))) {  // @todo Create these pursuit types
+    $max_duration = 15 * 60; 
+  }
+}
+
+////////////  Display functions //////////////////
+
+
+/**
+ * Creates a render array of the pursuit with all relations
+ */
+function mlmta_supersat_forms_page($pursuit) {
+  list(, , $bundle) = entity_extract_ids('pursuit', $pursuit);
+  $bundle_label = scheduling_bundle_label('pursuit', $bundle);
+  drupal_set_title($bundle_label);
+  return mlmta_supersat_forms_multiple_page(array($pursuit));
+}
+
+/**
+ * Builds and returns a renderable array for multiple pursuit. Built completely with students, teachers, accompanists, families and pieces
+ */
+function mlmta_supersat_forms_multiple_page($pursuits) {
+  $page = entity_view('pursuit', $pursuits, 'complete'); // @todo Create this entity view mode
+  return $page;
+}
+
+
+/**
+ * Pursuit modal for admin callback
+ */
+
+/**
+ * Show the content in a modal
+ *
+ * @param $ajax
+ *    Flag for JavaScript enabled browser
+ * @param $pursuit
+ *    The pursuit to view
+ */
+
+function mlmta_supersat_forms_modal_show($ajax, $pursuit){
+    if ($pursuit->type == 'break') {
+      if ($ajax) {
+        ctools_include('modal');
+        return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
+      } else{
+       return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
+      }
+    }
+    $page = mlmta_supersat_forms_page($pursuit);
+    if ($ajax) {
+      //watchdog('checking ajax', 'is here');
+      //ctools_include('ajax');
+      ctools_include('modal');
+      if (empty($page)) {
+        return 'Error';
+      }
+      return ctools_modal_render('',$page);
+    } else {
+    // watchdog('checking ajax', 'is NOT here');
+      return $page; 
+    }
+}
+
+
+/**
+ * Configuration form for mlmta supersat
+ */
+function mlmta_supersat_forms_configuration_form($form, &$form_state) {
+  // Provide a default date in the format YYYY-MM-DD HH:MM:SS.
+  $event_date = format_date(variable_get('tenuto_supersat_event_date','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $deadline = format_date(variable_get('tenuto_supersat_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $cutoff = format_date(variable_get('tenuto_supersat_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
+  $format = "m-d-Y h:i A";
+  
+  $event_id = variable_get('tenuto_supersat_event');
+  $form_activation = strtotime('2000-1-1 12:00:00');
+  if ($event_id) {
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
+  } 
+  
+  $events = event_load_all();
+  if (user_access('administer event types')) {
+    if (!empty($events)) {
+  
+      $options = array();
+      foreach ($events as $id => $event) {
+        $options[$id] = $events[$id]->title; 
+      }
+      
+      $form['tenuto_supersat_event'] = array(
+        '#type' => 'select',
+        '#title' => 'Event',
+        '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+        '#required' => TRUE,
+        '#options' => $options,
+        '#default_value' => $event_id,
+      );
+    }
+  }
+
+  $form['tenuto_supersat_chair_name'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Chair name',
+    '#description' => 'Enter the name of the event chair. For more than one chair, separate names with commas.',
+    '#default_value' => variable_get('tenuto_supersat_chair_name', NULL),
+  );
+  
+  $form['tenuto_supersat_chair_email_address'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Chair email',
+    '#description' => 'Enter the email address of the event chair. For more than one chair, separate email with commas.',
+    '#default_value' => variable_get('tenuto_supersat_chair_email_address', NULL),
+  );
+  
+  $form['location_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Location'),
+  );
+  
+  $form['location_fieldset']['tenuto_supersat_event_location'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Location for the event'),
+    '#default_value' => variable_get('tenuto_supersat_event_location', ''),
+  );
+  
+  $form['event_date_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Date'),
+  );
+  $form['event_date_fieldset']['tenuto_supersat_event_date'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select a date for the event'),
+     '#description' => 'This is the date when the event will take place.',
+     '#default_value' => $event_date, 
+     '#date_format' => 'm-d-Y',
+  );
+  
+  $form['event_activation_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Activation date'),
+  );
+  $form['event_activation_fieldset']['tenuto_supersat_form_activation'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select an activation date for the registration form'),
+     '#description' => 'The form will not be shown before this date.',
+     '#default_value' => $form_activation, 
+     '#date_format' => $format,
+  );
+  
+  $form['deadline_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Deadline'),
+  );
+  $form['deadline_fieldset']['tenuto_supersat_form_deadline'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select a registration deadline'),
+     '#description' => 'The forms will stop accepting registrations after this deadline.',
+     '#default_value' => $deadline, 
+     '#date_format' => $format,
+  );
+  
+  $form['cutoff_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Cutoff'),
+  );
+  $form['cutoff_fieldset']['tenuto_supersat_form_cutoff'] = array(
+     '#type' => 'date_select', 
+     '#title' => t('Select an age cutoff date for recital'),
+     '#description' => 'This is the date used to calculate the age of the student and the length of study with current teacher. Often this is either the same as the deadline, or the date of the event.',
+     '#default_value' => $cutoff, 
+     '#date_format' => $format,
+  );
+  
+  $form['email_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Confirmation Email'),
+  );
+  
+    // I may possibly need a separate email text for each pursuit??
+
+  $form['email_fieldset']['tenuto_supersat_email_confirmation_text'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Confirmation email text'),
+    '#default_value' => variable_get('tenuto_supersat_email_confirmation_text', ''),
+    '#rows' => 9,
+  );
+  
+  $form['scheduling_email_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Scheduling Email'),
+  );
+  $form['scheduling_email_fieldset']['tenuto_supersat_email_scheduling_text'] = array(
+    '#type' => 'text_format',
+    '#title' => t('Scheduling email text'),
+    '#default_value' => variable_get('tenuto_supersat_email_scheduling_text', ''),
+    '#rows' => 9,
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+    '#weight'=> 99,
+  );
+  return $form;
+}
+/**
+ * Submit handler
+ */
+function mlmta_supersat_forms_configuration_form_submit($form, &$form_state) {
+  $uts = strtotime($form_state['values']['tenuto_supersat_form_deadline']);
+  $cutoff = strtotime($form_state['values']['tenuto_supersat_form_cutoff']);
+  $event_date = strtotime($form_state['values']['tenuto_supersat_event_date']);
+  $activation_date = strtotime($form_state['values']['tenuto_supersat_form_activation']);
+  
+  variable_set('tenuto_supersat_form_deadline', $uts);
+  variable_set('tenuto_supersat_form_cutoff', $cutoff);
+  variable_set('tenuto_supersat_event_date', $event_date);
+  variable_set('tenuto_supersat_event_location', $form_state['values']['tenuto_supersat_event_location']);
+  variable_set('tenuto_supersat_email_confirmation_text', $form_state['values']['tenuto_supersat_email_confirmation_text']['value']);
+  variable_set('tenuto_supersat_email_scheduling_text', $form_state['values']['tenuto_supersat_email_scheduling_text']['value']);
+  variable_set('tenuto_supersat_chair_email_address', $form_state['values']['tenuto_supersat_chair_email_address']);
+  variable_set('tenuto_supersat_chair_name', $form_state['values']['tenuto_supersat_chair_name']);
+  
+  if (isset($form_state['values']['tenuto_supersat_event'])) {
+    variable_set('tenuto_supersat_event', $form_state['values']['tenuto_supersat_event']);
+    $event = event_load($form_state['values']['tenuto_supersat_event']);
+    $event->cutoff = $cutoff;
+    $event->deadline = $uts;
+    $event->activation = $activation_date;
+    $event_wrapper = entity_metadata_wrapper('event', $event);
+    $event_wrapper->field_event_date = $event_date;
+    $event_wrapper->field_event_location = $form_state['values']['tenuto_supersat_event_location'];
+    $event_wrapper->field_chair_name =  $form_state['values']['tenuto_supersat_chair_name'];
+    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_supersat_chair_email_address'];
+    
+    event_save($event);   
+  }
+  drupal_set_message(t('The settings have been saved.'));
+}
+
+/**
+ * Implements hook_token_info().
+ *
+ * Creates token replacements for the solo site
+ */
+function mlmta_supersat_forms_token_info() {
+  $tokens = array();
+  $tokens['tokens']['site']['tenuto-supersat-event'] = array(
+    'name' => t('Tenuto system event linked to the Supersat forms'),
+    'description' => t('The event ID linked to the CMF forms.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-email-confirmation-text'] = array(
+    'name' => t('Tenuto system email confirmation text'),
+    'description' => t('Text to be inserted in the email confirmation above the order summary.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-email-scheduling-text'] = array(
+    'name' => t('Tenuto system email scheduling text'),
+    'description' => t('Text to be inserted in the scheduling email above the order summary.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-form-deadline'] = array(
+    'name' => t('Tenuto system form deadline'),
+    'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-event_date'] = array(
+    'name' => t('Tenuto system date'),
+    'description' => t('The date for the event.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-event_location'] = array(
+    'name' => t('Tenuto system event location'),
+    'description' => t('The location of the vent.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-chair-name'] = array(
+    'name' => t('Tenuto system event chair name'),
+    'description' => t('The chair name of the event.'),
+  );
+  $tokens['tokens']['site']['tenuto-supersat-chair-email-address'] = array(
+    'name' => t('Tenuto system event chair email'),
+    'description' => t('The chair email for the event.'),
+  );
+  return $tokens;
+}
+
+/**
+ * Implements hook_tokens()
+ * Provides value for token
+ */
+function mlmta_supersat_forms_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'site') {
+    $sanitize = !empty($options['sanitize']);
+    // Loop through the available tokens.
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'tenuto-supersat-email-confirmation-text':
+          $value = variable_get('tenuto_supersat_email_confirmation_text','');
+          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-email-scheduling-text':
+          $value = variable_get('tenuto_supersat_email_scheduling_text','');
+          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-form-deadline':
+          $value = format_date(variable_get('tenuto_supersat_form_deadline','1577854800'), 'custom', 'm/d/Y h:i A');
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-event':
+          $value = variable_get('tenuto_supersat_event', 0);
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-event-date':
+          $value = format_date(variable_get('tenuto_supersat_event_date','1577854800'), 'custom', 'm/d/Y');
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-event-location':
+          $value = variable_get('tenuto_supersat_event_location','');
+          $value = $sanitize ? filter_xss($value) : $value;
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-chair-name':
+          $value = variable_get('tenuto_supersat_chair_name', '');
+          $value = $sanitize ? filter_xss($value) : $value;
+          $replacements[$original] = $value;
+          break;
+        case 'tenuto-supersat-chair-email-address':
+          $value = variable_get('tenuto_supersat_chair_email_address', '');
+          $value = $sanitize ? filter_xss($value) : $value;
+          $replacements[$original] = $value;
+          break;        
+      }
+    }
+    return $replacements;
+  }
+}
+
+/**
+ * Implements hook_message_presave().
+ *
+ * Embeds a view in the notification email for solo registrations
+ */
+
+function mlmta_supersat_forms_message_presave($message) {
+  if (!empty($message->mid) || $message->type != 'commerce_order_supersat_confirmation' ) { // @todo Create message type
+    return;
+  }
+
+  $message->arguments['!supersat-order-summary'] = array(
+    'callback' => 'mlmta_supersat_forms_message_order_summary', 
+    'pass message' => TRUE,
+  );
+}
+
+/**
+ * Message solo callback; Show order summary.
+ *
+ * @param Message $message
+ *   The Message entity.
+ *
+ * @return string
+ *   The output of the View.
+ */
+function mlmta_supersat_forms_message_order_summary(Message $message) {
+  $wrapper = entity_metadata_wrapper('message', $message);
+  $view = views_get_view('shopping_cart_complete_summary'); 
+  $view->set_display('supersat'); // @todo Create views display for supersat
+  $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
+  $view->hide_admin_links = TRUE;
+
+  // Disable SQL query rewrite so this renders properly for token.
+  // @link https://www.drupal.org/node/1895418
+  // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
+  $view->display['recital']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
+
+  return $view->preview();
+}
+
+
+///**
+// * Creates a map of instruments
+// */
+//function mlmta_supersat_forms_instruments() {
+//  return drupal_map_assoc(array(
+//    'Piano', 'Voice', 'Violin', 'Viola', 'Cello', 'Bass', 'Guitar', 'Harp', 'Flute', 'Oboe', 'Clarinet', 'Bassoon', 'French horn', 'English horn', 'Saxophone' ,'Trumpet', 'Trombone', 'Euphonium', 'Tuba', 'Percussion', 'Marimba', 'Vibraphone',  
+//  ));
+//}
+
+///**
+// * Outputs a html file with .doc extension. Outputs the student recital program
+// */
+//function mlmta_supersat_output_program() {
+//  $content = views_embed_view('mlmta_supersat_program','page');
+//  //add necessary headers for browsers
+//  $filename = 'RecitalProgram-'.date('Ymd-Hi').'.doc';
+//  drupal_add_http_header('Content-Type', 'application/vnd.ms-word; utf-8'); 
+////  drupal_add_http_header("Cache-Control: must-revalidate, post-check=0, pre-check=0"); 
+//  drupal_add_http_header('Content-Disposition',  'attachment;filename= "'.$filename.'"');
+//  print $content;
+//  drupal_exit();
+//}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the rearrange view form to add recalculation THIS NEEDS TO MOVE TO INDIVIDUAL SYSTEMS DUE TO MULTIPLE FORM NAMES
+ */
+function timeblock_form_views_form_pursuits_1_supersat_rearrange_alter(&$form, &$form_state) { //@todo Create pursuit_1_supersat View
+  $form['#submit'][] = 'timeblock_trigger_recalculation_callback';
+}
+
+
+/**
+ * Produce complete CSV of SuperSat registrations
+ * @todo This may actually not work so well. I will need to do a separate CSV download for Playathon 
+ */
+function mlmta_supersat_forms_produce_registration_csv() {
+  // Get the records
+  $event_id = variable_get('tenuto_supersat_event', NULL);
+  if(!$event_id) {
+    drupal_set_message('Please be sure to select the CMF event', 'error');
+    return 'Error';
+  }
+  
+  $q = db_select('pursuit');
+  $q->fields('pursuit', array('pursuit_id'));
+  
+  // Filter event 9 (CMF)
+  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
+  
+  // Filter active ones
+  $q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1');
+  
+  // Join to student reference 
+  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id');
+  $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
+  
+  // Join to student last name
+  $q->join('field_data_student_last_name', 'last_name','last_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('last_name', array('student_last_name_value'));
+  
+  // Join to student first name
+  $q->join('field_data_student_first_name', 'first_name','first_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('first_name', array('student_first_name_value'));
+  
+  // Sort by student last name
+  $q->orderBy('last_name.student_last_name_value');
+  
+  // Sort by student first name
+  $q->orderBy('first_name.student_first_name_value');
+  
+  $result = $q->execute()->fetchAllAssoc('pursuit_id');
+  
+  if (empty($result)) {
+    return 'No registrations found.';    
+  }
+  $pursuit_ids = array_keys($result);
+  $pursuits = pursuit_load_multiple($pursuit_ids);
+  
+  // Build the CSV structure
+  $structure = array(
+    'pursuit_id' => 'Registration ID',
+    'pursuit_order_reference' => array(
+      'order_id' => 'Order ID',
+    ),
+    'pursuit_order_paid' => 'Paid',
+    'pursuit_active' => 'Active',
+    'type' => 'Type',
+    'label' => 'Registrant(s)',
+    'pursuit_student_reference' => array(
+      'student_first_name' => 'Student first name',
+      'student_last_name' => 'Student last name',
+      'student_calculated_age' => 'Student calculated age',
+      'student_calculated_time' => 'Student time with current teacher',
+      'student_email' => 'Student email',
+      'field_student_phone' => 'Student phone',
+      'field_student_family' => array(
+        'label' => 'Student group',
+      ),
+     ),
+    'field_piano_solo_level'=>'Level',
+    'pursuit_piece_reference' => array(
+      'label' => 'Piece',
+      'piece_composer' => array('name' => 'Composer'),
+      'piece_duration' => 'Duration',
+    ),
+    'pursuit_duration' => 'Total duration',
+    'pursuit_trimmed_duration' => 'Trimmed duration',
+    'pursuit_instrument' => 'Instrument',
+    'pursuit_teacher_reference' => array(
+      'teacher_first_name' => 'Teacher first name',
+      'teacher_last_name' => 'Teacher last name',
+      'teacher_email' => 'Teacher email',
+      'teacher_phone' => 'Teacher phone',
+      'teacher_code' => 'Teacher code',
+    ),
+    'field_event_reference' => array(
+      'label' => 'Event'
+    ),
+    'pursuit_timeblock_reference' => array(
+      'timeblock_room' => array(
+        'label' => 'Room',
+      'label' => 'Time block',
+      ),
+    ),
+    'pursuit_contestant_number' => 'Contestant # within time block',
+    'pursuit_date' => 'Performance date'
+  );
+  
+  $cardinality_index = array(
+    'pursuit_piece_reference' => 2,
+  'pursuit_student_reference' => 2,
+  );
+  
+  $header_array = mlmta_base_form_build_csv_header($structure, $cardinality_index);
+
+  //instead of writing down to a file we write to the output stream
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-cmf-registrations.csv"');
+  $fh = fopen('php://output', 'w');
+  fputcsv($fh, $header_array);
+  
+  foreach ($pursuits as $pursuit) {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
+    fputcsv($fh, $row);
+  }
+  drupal_exit();
+}
+
+
+
