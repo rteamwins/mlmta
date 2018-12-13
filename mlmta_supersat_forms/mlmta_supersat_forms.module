@@ -616,5 +616,30 @@ function mlmta_supersat_forms_produce_registration_csv() {
   drupal_exit();
 }
 
+/**
+ * Implements hook_field_widget_form_alter().
+ * Disables checkboxes for slots that have already been taken. Adds name of teacher for those taken slots
+ */
+function mlmta_supersat_forms_field_widget_form_alter(&$element, &$form_state, $context) {
+  if ($context['field']['field_name'] == 'field_playathon_slots') { 
+    dpm('here');
+    // Get all playathon slot ids that reference a pursuit
+    $q = db_select('field_data_playathon_pursuit_reference', 'p');
+    $q->isNotNull('p.playathon_pursuit_reference_target_id');
+    $q->fields('p', array('entity_id', 'playathon_pursuit_reference_target_id'));
+    $q->join('field_data_pursuit_teacher_reference', 'p_teacher', 'p_teacher.entity_id = p.playathon_pursuit_reference_target_id');
+    $q->fields('p_teacher', array('pursuit_teacher_reference_target_id'));
+    $q->join('teacher', 'teacher', 'teacher.teacher_id = pursuit_teacher_reference_target_id');
+    $q->fields('teacher', array('name'));
+
+    $rs = $q->execute();
+    foreach ($rs as $record) {
+      $element['#options'][$record->entity_id] .= ' ('.$record->name.')'; 
+      $element[$record->entity_id] = array(
+        '#disabled' => TRUE,
+      );
+    }
+  }
+}
 
 
