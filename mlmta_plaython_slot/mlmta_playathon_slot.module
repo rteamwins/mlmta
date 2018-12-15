@@ -175,18 +175,18 @@ function mlmta_playathon_slot_permission() {
       'description' => t('Allows users to create PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
-    'view playathon entities' => array(
+    'view mlmta_playathon_slot entities' => array(
       'title' => t('View PlayathonSlot'),
       'description' => t('Allows users to view PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
-    'edit any playathon entities' => array(
+    'edit any mlmta_playathon_slot entities' => array(
       'title' => t('Edit any PlayathonSlot'),
       'description' => t('Allows users to edit any PlayathonSlot.'),
       'restrict access' => TRUE,
     ),
     
-    'edit own playathon entities' => array(
+    'edit own mlmta_playathon_slot entities' => array(
       'title' => t('Edit own PlayathonSlot'),
       'description' => t('Allows users to edit own PlayathonSlot.'),
       'restrict access' => TRUE,

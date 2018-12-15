@@ -7,7 +7,7 @@
 function mlmta_supersat_forms_menu(){
   $items = array();
   $items['supersat-kits-registration/new'] = array(
-    'title' => t('Super Saturday master class and KITS registration form'),
+    'title' => t('Super Saturday KITS registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_supersat_kits_form'),
     'access callback' => 'mlmta_base_module_date_access_check',
@@ -17,16 +17,17 @@ function mlmta_supersat_forms_menu(){
   );
   
   $items['supersat-playathon-registration/new'] = array(
-    'title' => t('Super Saturday Play-a-thon registratoin form'),
+    'title' => t('Super Saturday Play-a-thon registration form'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_supersat_playathon_form'),
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'mlmta_base_module_date_access_check',
+    'access arguments' => array(variable_get('tenuto_supersat_event')),
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_supersat_playathon.inc',
   );
    
   $items['admin/supersat-kits-form/%ctools_js/%pursuit/view'] = array(
-    'title' => 'Super Saturday master class/KITS registration',
+    'title' => 'Super Saturday KITS registration',
     'page callback' => 'mlmta_supersat_kits_forms_modal_show',
     'page arguments' => array(2, 3),
     'access callback' => 'user_is_logged_in',
@@ -41,9 +42,9 @@ function mlmta_supersat_forms_menu(){
     'type' => MENU_CALLBACK,
   );
   
-  $items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
-    'title' => 'Constance Murray general settings',
-    'description' => 'General settings for the CMF forms.',
+  $items['admin/config/tenuto-registrations/manage/supersat-settings'] = array(
+    'title' => 'Super Saturday general settings',
+    'description' => 'General settings for the SuperSat forms.',
     'access arguments' => array('create timeblock entities'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mlmta_supersat_forms_configuration_form'),
@@ -621,8 +622,7 @@ function mlmta_supersat_forms_produce_registration_csv() {
  * Disables checkboxes for slots that have already been taken. Adds name of teacher for those taken slots
  */
 function mlmta_supersat_forms_field_widget_form_alter(&$element, &$form_state, $context) {
-  if ($context['field']['field_name'] == 'field_playathon_slots') { 
-    dpm('here');
+  if ($context['field']['field_name'] == 'field_playathon_slots') {
     // Get all playathon slot ids that reference a pursuit
     $q = db_select('field_data_playathon_pursuit_reference', 'p');
     $q->isNotNull('p.playathon_pursuit_reference_target_id');
@@ -631,6 +631,11 @@ function mlmta_supersat_forms_field_widget_form_alter(&$element, &$form_state, $
     $q->fields('p_teacher', array('pursuit_teacher_reference_target_id'));
     $q->join('teacher', 'teacher', 'teacher.teacher_id = pursuit_teacher_reference_target_id');
     $q->fields('teacher', array('name'));
+    
+    if (!isset($element['#entity']->is_new) || !$element['#entity']->is_new) {
+      $pursuit_id = $element['#entity']->pursuit_id;
+      $q->condition('p.playathon_pursuit_reference_target_id', $pursuit_id, '!=');
+    }
 
     $rs = $q->execute();
     foreach ($rs as $record) {
@@ -643,3 +648,42 @@ function mlmta_supersat_forms_field_widget_form_alter(&$element, &$form_state, $
 }
 
 
+/**
+ * Implements hook_check_time_conflicts_helper_alter ()
+ * Checks for conflicts with existing playathon pursuits
+ */
+function mlmta_supersat_forms_check_time_conflicts_helper_alter(&$pursuit, &$conflicted_pursuits ,&$conflicted_timeblocks){
+  // The pursuit past here are necessarily in a timeblock, or have been recently removed from a time block
+
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if (empty($pursuit_wrapper->pursuit_timeblock_reference->value())) return;   // If this pursuit is not in a timeblock then bail out
+  $conflict_flag = FALSE;
+  $origin_start = $pursuit_wrapper->pursuit_date->value->value();
+  $origin_end = $pursuit_wrapper->pursuit_date->value2->value();
+  foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student) {
+    foreach ($student->student_pursuit_reference->getIterator() as $target_pursuit) {
+      if ($target_pursuit->getBundle() !== 'playathon' ) {
+        // We care just about Playathons - these by definition are not in a time block, and therefore are skipped by the normal checks
+        continue;
+      }
+      if ($pursuit_wrapper->getIdentifier() != $target_pursuit->getIdentifier()) {
+        $target_start_end = array();
+        foreach ($target_pursuit->field_playathon_slots->getIterator() as $playathon_slot) {
+          $target_start =  $playathon_slot->mlmta_playathon_slot_time->value->value();
+          $target_end = $playathon_slot->mlmta_playathon_slot_time->value2->value();
+          if (($target_start>=$origin_start && $target_start<$origin_end) ||
+              ($target_end>$origin_start && $target_end<=$origin_end) ||
+              ($target_start <= $origin_start && $target_end>=$origin_end)) {
+            $conflict_flag = TRUE;
+          }
+        }
+      }
+    }
+  }
+  if ($conflict_flag) {
+    $conflicted_pursuits[$pursuit_wrapper->getIdentifier()] = TRUE;
+    $pursuit_wrapper->pursuit_time_conflict->set(TRUE);
+    $pursuit_wrapper->save();
+    $conflicted_timeblocks[$pursuit_wrapper->pursuit_timeblock_reference->getIdentifier()] = TRUE;
+  }
+}

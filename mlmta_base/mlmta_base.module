@@ -118,8 +118,16 @@ function mlmta_base_edit_page($pursuit) {
       break;
     case 'cmf_ensemble':
       $form_id = 'mlmta_cmf_ensemble_form';
-      module_load_include('inc', 'mlmta_cmf_forms', 'mlmta_ensemble');
-      break;    
+      module_load_include('inc', 'mlmta_cmf_forms', 'mlmta_cmf_ensemble');
+      break;
+    case 'playathon':
+      $form_id = 'mlmta_supersat_playathon_form';
+      module_load_include('inc', 'mlmta_supersat_forms', 'mlmta_supersat_playathon');
+      break;
+    case 'kits':
+      $form_id = 'mlmta_supersat_kits_form';
+      module_load_include('inc', 'mlmta_supersat_forms', 'mlmta_supersat_kits');
+      break;      
     default:
       return 'Undefined';
   }
@@ -148,6 +156,9 @@ function mlmta_base_view_page($pursuit) {
     case 'cmf_solo':
     case 'cmf_ensemble':
       return mlmta_cmf_forms_page($pursuit);
+    case 'playathon':
+    case 'kits':
+      return mlmta_supersat_forms_page($pursuit);
     default :
         return 'Undefined';
   }
