@@ -199,6 +199,10 @@ function mlmta_playathon_slot_form_submit($form, &$form_state) {
   
   entity_form_submit_build_entity('mlmta_playathon_slot', $mlmta_playathon_slot, $form, $form_state);
   
+  $wrapper = entity_metadata_wrapper('mlmta_playathon_slot', $mlmta_playathon_slot);
+  
+  $mlmta_playathon_slot->name = format_date($wrapper->mlmta_playathon_slot_time->value->value(), 'custom', 'm/d/Y h:ia') . ' to ' . format_date($wrapper->mlmta_playathon_slot_time->value2->value(),'custom', 'h:ia'); 
+  
   mlmta_playathon_slot_save($mlmta_playathon_slot);
 
   $mlmta_playathon_slot_uri = entity_uri('mlmta_playathon_slot', $mlmta_playathon_slot);

@@ -25,6 +25,16 @@ function mlmta_supersat_forms_menu(){
     'type' => MENU_CALLBACK,
     'file' => 'mlmta_supersat_playathon.inc',
   );
+  
+  $items['supersat-mc-registration/new'] = array(
+    'title' => t('Mini master class registration form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_supersat_mc_form'),
+    'access callback' => 'mlmta_base_module_date_access_check',
+    'access arguments' => array(variable_get('tenuto_supersat_event')),
+    'type' => MENU_CALLBACK,
+    'file' => 'mlmta_supersat_mc.inc',
+  );
    
   $items['admin/supersat-kits-form/%ctools_js/%pursuit/view'] = array(
     'title' => 'Super Saturday KITS registration',
@@ -37,6 +47,14 @@ function mlmta_supersat_forms_menu(){
   $items['admin/supersat-playathon-form/%ctools_js/%pursuit/view'] = array(
     'title' => 'Super Saturday Playathon registration',
     'page callback' => 'mlmta_supersat_playathon_forms_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/supersat-mc-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'Mini master class registration',
+    'page callback' => 'mlmta_supersat_mc_forms_modal_show',
     'page arguments' => array(2, 3),
     'access callback' => 'user_is_logged_in',
     'type' => MENU_CALLBACK,
@@ -63,6 +81,18 @@ function mlmta_supersat_forms_menu(){
   return $items;
 }
 
+/**
+ * Implements hook_permission()
+ */
+function mlmta_supersat_forms_permission() {
+  $permissions = array(
+    'register more than four students in master class' => array(
+      'title' => t('Register more than 4 master class students.'),
+      'description' => t('Allows users to register more than 4 students in the Super Saturday Master Class'),
+    ),
+  );
+  return $permissions;
+}
 
 /**
  * Checks that user is able to edit paid pursuit
@@ -84,8 +114,8 @@ function mlmta_supersat_forms_edit_access_check($pursuit) {
 function mlmta_supersat_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
   // Here I need to check if this
   
-  if (in_array($pursuit->type, array('cmf_solo'))) {  // @todo Create these pursuit types
-    $max_duration = 15 * 60; 
+  if (in_array($pursuit->type, array('mc'))) {  // @todo Create these pursuit types
+    $max_duration = 20 * 60; 
   }
 }
 
@@ -451,7 +481,7 @@ function mlmta_supersat_forms_message_presave($message) {
 function mlmta_supersat_forms_message_order_summary(Message $message) {
   $wrapper = entity_metadata_wrapper('message', $message);
   $view = views_get_view('shopping_cart_complete_summary'); 
-  $view->set_display('supersat'); // @todo Create views display for supersat
+  $view->set_display('supersat'); // @done Create views display for supersat
   $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
   $view->hide_admin_links = TRUE;
 
@@ -464,34 +494,11 @@ function mlmta_supersat_forms_message_order_summary(Message $message) {
 }
 
 
-///**
-// * Creates a map of instruments
-// */
-//function mlmta_supersat_forms_instruments() {
-//  return drupal_map_assoc(array(
-//    'Piano', 'Voice', 'Violin', 'Viola', 'Cello', 'Bass', 'Guitar', 'Harp', 'Flute', 'Oboe', 'Clarinet', 'Bassoon', 'French horn', 'English horn', 'Saxophone' ,'Trumpet', 'Trombone', 'Euphonium', 'Tuba', 'Percussion', 'Marimba', 'Vibraphone',  
-//  ));
-//}
-
-///**
-// * Outputs a html file with .doc extension. Outputs the student recital program
-// */
-//function mlmta_supersat_output_program() {
-//  $content = views_embed_view('mlmta_supersat_program','page');
-//  //add necessary headers for browsers
-//  $filename = 'RecitalProgram-'.date('Ymd-Hi').'.doc';
-//  drupal_add_http_header('Content-Type', 'application/vnd.ms-word; utf-8'); 
-////  drupal_add_http_header("Cache-Control: must-revalidate, post-check=0, pre-check=0"); 
-//  drupal_add_http_header('Content-Disposition',  'attachment;filename= "'.$filename.'"');
-//  print $content;
-//  drupal_exit();
-//}
-
-
 /**
  * Implements hook_form_FORM_ID_alter().
  *
  * Alters the rearrange view form to add recalculation THIS NEEDS TO MOVE TO INDIVIDUAL SYSTEMS DUE TO MULTIPLE FORM NAMES
+ * @todo check if this works for the new system or find a foolproof way!
  */
 function timeblock_form_views_form_pursuits_1_supersat_rearrange_alter(&$form, &$form_state) { //@todo Create pursuit_1_supersat View
   $form['#submit'][] = 'timeblock_trigger_recalculation_callback';

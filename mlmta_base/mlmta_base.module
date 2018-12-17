@@ -127,7 +127,11 @@ function mlmta_base_edit_page($pursuit) {
     case 'kits':
       $form_id = 'mlmta_supersat_kits_form';
       module_load_include('inc', 'mlmta_supersat_forms', 'mlmta_supersat_kits');
-      break;      
+      break;
+    case 'mc':
+      $form_id = 'mlmta_supersat_mc_form';
+      module_load_include('inc', 'mlmta_supersat_forms', 'mlmta_supersat_mc');
+      break;
     default:
       return 'Undefined';
   }
@@ -158,6 +162,7 @@ function mlmta_base_view_page($pursuit) {
       return mlmta_cmf_forms_page($pursuit);
     case 'playathon':
     case 'kits':
+    case 'mc':
       return mlmta_supersat_forms_page($pursuit);
     default :
         return 'Undefined';

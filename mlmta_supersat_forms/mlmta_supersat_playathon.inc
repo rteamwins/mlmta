@@ -83,16 +83,18 @@ function mlmta_supersat_playathon_form_validate($form, $form_state) {
     $slot_ids[] = $item['target_id'];
   }
   
-  $q = new EntityFieldQuery();
-  $q->entityCondition('entity_type', 'mlmta_playathon_slot')
-    ->propertyCondition('mlmta_playathon_slot_id', $slot_ids, 'IN')
-    ->fieldCondition('playathon_pursuit_reference', 'target_id', 'NULL', '!=');
-  if (!$is_new) {
-    $q->fieldCondition('playathon_pursuit_reference', 'target_id', $pursuit->pursuit_id, '!=');
-  }
+  // Check if slots are taken
+  $q = db_select('mlmta_playathon_slot', 'slot');
+  $q->condition('slot.mlmta_playathon_slot_id', $slot_ids, 'IN');
+  $q->fields('slot', array('mlmta_playathon_slot_id'));
+  $q->join('field_data_playathon_pursuit_reference', 'slot_pursuit', 'slot_pursuit.entity_id = slot.mlmta_playathon_slot_id');
+  $q->fields('slot_pursuit', array('playathon_pursuit_reference_target_id')); // Need to check if they are really taken
+  $q->join('pursuit', 'pursuit', 'pursuit.pursuit_id = slot_pursuit.playathon_pursuit_reference_target_id');
+
   $r = $q->execute();
-  if (!empty($r['mlmta_playathon_slot'])) {
-    $ids = array_keys($r['mlmta_playathon_slot']);
+  $rows = $r->fetchAllAssoc('mlmta_playathon_slot_id');
+  if (!empty($rows)) {
+    $ids = array_keys($rows);
     $slots = mlmta_playathon_slot_load_multiple($ids);
     foreach ($slots as $slot) {
       drupal_set_message(t('Slot %slot is no longer available. Please choose a different slot.', array('%slot' => $slot->name)), 'warning');
@@ -104,7 +106,7 @@ function mlmta_supersat_playathon_form_validate($form, $form_state) {
 /**
  * Submit handler
  */
-function mlmta_supersat_playathon_form_submit($form, $form_state) {
+function mlmta_supersat_playathon_form_submit($form, &$form_state) {
   $pursuit = $form_state['pursuit'];
   $is_new = isset($pursuit->is_new) ? $pursuit->is_new : FALSE; 
   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
@@ -150,5 +152,6 @@ function mlmta_supersat_playathon_form_submit($form, $form_state) {
     $slot_wrapper->playathon_pursuit_reference = $pursuit->pursuit_id;
     $slot_wrapper->save();
   }
+  $form_state['redirect'] = 'supersat-forms';
   
 }
