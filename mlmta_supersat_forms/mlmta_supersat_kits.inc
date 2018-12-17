@@ -24,7 +24,29 @@ function mlmta_supersat_kits_form($form, &$form_state, $pursuit = NULL) {
     // Triggered by the student select ajax
     // Selected an existing student
     $student_id = (array) $form_state['values']['student'];
-  } 
+  }
+  
+  $notice = <<<EOT
+The KITS schedule is FIXED as follows:
+<table>
+<tr><th>Time</th><th>Reading</th><th>Listening</th><th>Playing</th></tr>
+<tr><td>1:00 PM</td><td>Step 1</td><td>Step 3</td><td>Step 2</td></tr>
+<tr><td>1:30 PM</td><td>Step 2</td><td>Step 1</td><td>Step 3</td></tr>
+<tr><td>2:00 PM</td><td>Step 3</td><td>Step 2</td><td>Step 1</td></tr>
+<tr><td>3:00 PM</td><td>Steps 4, 5, 6</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</table>
+<p><strong>Primary level students</strong> may enter the Reading Room at any time after 12:45pm.</p>
+
+<p><strong>Step 4, Step 5, and Step 6 students:</strong> Due to a very low number of students, all students are expected to arrive at the reading room <u>on time by 2:30pm</u> and begin work on the written portion of the exam. Then students will receive instruction on where to go for the listening and playing room.</p>
+
+<p>Teachers, please make sure that your students know which level of exam they are going to take.</p>
+
+<p>Note: All of the exam rooms are on the third floor of Swope School of Music, West Chester University.</p>
+  
+EOT;
+  $form['notice'] = array(
+    '#markup' => $notice,
+  );
   $form['student_1']= array(
     '#type' => 'fieldset',
     '#title' => t('Student'),
