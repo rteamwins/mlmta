@@ -186,8 +186,9 @@ function mlmta_supersat_mc_form_submit($form, $form_state) {
   $pursuit_wrapper->pursuit_preferred_time = $form_state['values']['pursuit_preferred_time']['und'][0]['value'];
   $pursuit_wrapper->pursuit_piece_reference = array($piece_id);
   $pursuit_wrapper->field_event_reference = variable_get('tenuto_supersat_event', NULL);
-
+  
   pursuit_update_name($pursuit);
+  pursuit_update_duration($pursuit);
   pursuit_save($pursuit);
   if ($is_new) {
     pursuit_add_to_shopping_cart(array($pursuit), 'mc'); 

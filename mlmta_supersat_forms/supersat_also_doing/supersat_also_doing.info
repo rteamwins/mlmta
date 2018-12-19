@@ -1,0 +1,7 @@
+name = Also doing field for SuperSat 
+description = Creates new Views field handlers to display KITS and Playathon "also doing" columns for Super Saturday Master Class pursuits. Used for visualizing when scheduling
+core = 7.x
+package = Scheduling
+
+files[] = views/supersat_playathon_also_doing_handler_field_playathon.inc
+files[] = views/supersat_kits_also_doing_handler_field_kits.inc

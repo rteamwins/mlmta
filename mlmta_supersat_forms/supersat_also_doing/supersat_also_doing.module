@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Implements hook_views_api().
+ */
+function supersat_also_doing_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'supersat_also_doing') . '/views',
+  );
+}
