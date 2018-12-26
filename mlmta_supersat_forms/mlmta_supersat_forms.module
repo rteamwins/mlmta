@@ -115,7 +115,7 @@ function mlmta_supersat_forms_pursuit_calculate_trimmed_duration_alter(&$max_dur
   // Here I need to check if this
   
   if (in_array($pursuit->type, array('mc'))) {  // @todo Create these pursuit types
-    $max_duration = 20 * 60; 
+    $max_duration = 90 * 60; // allow up to 90 minutes. The length is overriden in the inc file to the correct time slot
   }
 }
 
@@ -667,6 +667,8 @@ function mlmta_supersat_forms_check_time_conflicts_helper_alter(&$pursuit, &$con
   $conflict_flag = FALSE;
   $origin_start = $pursuit_wrapper->pursuit_date->value->value();
   $origin_end = $pursuit_wrapper->pursuit_date->value2->value();
+            dpm($origin_start);
+          dpm($origin_end);
   foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student) {
     foreach ($student->student_pursuit_reference->getIterator() as $target_pursuit) {
       if ($target_pursuit->getBundle() !== 'playathon' ) {
@@ -678,6 +680,8 @@ function mlmta_supersat_forms_check_time_conflicts_helper_alter(&$pursuit, &$con
         foreach ($target_pursuit->field_playathon_slots->getIterator() as $playathon_slot) {
           $target_start =  $playathon_slot->mlmta_playathon_slot_time->value->value();
           $target_end = $playathon_slot->mlmta_playathon_slot_time->value2->value();
+          dpm($target_start);
+          dpm($target_end);
           if (($target_start>=$origin_start && $target_start<$origin_end) ||
               ($target_end>$origin_start && $target_end<=$origin_end) ||
               ($target_start <= $origin_start && $target_end>=$origin_end)) {
@@ -694,3 +698,5 @@ function mlmta_supersat_forms_check_time_conflicts_helper_alter(&$pursuit, &$con
     $conflicted_timeblocks[$pursuit_wrapper->pursuit_timeblock_reference->getIdentifier()] = TRUE;
   }
 }
+
+// @todo - Check conflict with KITS?
