@@ -69,11 +69,11 @@ function mlmta_supersat_forms_menu(){
     'type' => MENU_NORMAL_ITEM,
    );
 
-   //$items['cmf-registrations-csv-download'] = array(
-   // 'title' => 'Download registrations as CSV',
+   //$items['supersat-playathon-registrations-csv-download'] = array(
+   // 'title' => 'Download Playathon registrations as CSV',
    // 'description' => 'Download CSV',
    // 'access arguments' => array('create timeblock entities'),
-   // 'page callback' => 'mlmta_supersat_forms_produce_registration_csv',
+   // 'page callback' => 'mlmta_supersat_forms_produce_playathon_registration_csv',
    // 'type' => MENU_CALLBACK,
    //);
    
@@ -506,21 +506,26 @@ function timeblock_form_views_form_pursuits_1_supersat_rearrange_alter(&$form, &
 
 
 /**
- * Produce complete CSV of SuperSat registrations
- * @todo This may actually not work so well. I will need to do a separate CSV download for Playathon 
+ * Produce complete CSV of SuperSat PLayathon registrations
+ * @todo This may actually not work so well. I will need to do a separate CSV download for Playathon
+ *
+ * NOT USED. Using Views instead
  */
-function mlmta_supersat_forms_produce_registration_csv() {
+function mlmta_supersat_forms_produce_playathon_registration_csv() {
   // Get the records
   $event_id = variable_get('tenuto_supersat_event', NULL);
   if(!$event_id) {
-    drupal_set_message('Please be sure to select the CMF event', 'error');
+    drupal_set_message('Please be sure to select the Super Saturday event', 'error');
     return 'Error';
   }
   
   $q = db_select('pursuit');
   $q->fields('pursuit', array('pursuit_id'));
   
-  // Filter event 9 (CMF)
+  // Condition type = playathon
+  $q->condition('type', 'playathon');
+  
+  // Filter event SuperSat event
   $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
   
   // Filter active ones

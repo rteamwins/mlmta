@@ -76,6 +76,7 @@ function mlmta_supersat_playathon_form($form, &$form_state, $pursuit = NULL) {
 function mlmta_supersat_playathon_form_validate($form, $form_state) {
   
   $pursuit = $form_state['pursuit'];
+  $teacher_id = $form_state['values']['teacher'];
   $is_new = isset($pursuit->is_new) ? $pursuit->is_new : FALSE;
   // Check if time slots are still available
   $slot_ids  = array();
@@ -88,18 +89,24 @@ function mlmta_supersat_playathon_form_validate($form, $form_state) {
   $q->condition('slot.mlmta_playathon_slot_id', $slot_ids, 'IN');
   $q->fields('slot', array('mlmta_playathon_slot_id'));
   $q->join('field_data_playathon_pursuit_reference', 'slot_pursuit', 'slot_pursuit.entity_id = slot.mlmta_playathon_slot_id');
-  $q->fields('slot_pursuit', array('playathon_pursuit_reference_target_id')); // Need to check if they are really taken
-  $q->join('pursuit', 'pursuit', 'pursuit.pursuit_id = slot_pursuit.playathon_pursuit_reference_target_id');
+  $q->fields('slot_pursuit', array('playathon_pursuit_reference_target_id')); 
+  $q->join('pursuit', 'pursuit', 'pursuit.pursuit_id = slot_pursuit.playathon_pursuit_reference_target_id'); // Checks if they are really taken (if referenced pursuit exists)
 
   $r = $q->execute();
   $rows = $r->fetchAllAssoc('mlmta_playathon_slot_id');
   if (!empty($rows)) {
     $ids = array_keys($rows);
     $slots = mlmta_playathon_slot_load_multiple($ids);
+    $error_flag = FALSE;
     foreach ($slots as $slot) {
-      drupal_set_message(t('Slot %slot is no longer available. Please choose a different slot.', array('%slot' => $slot->name)), 'warning');
+      $slot_wrapper = entity_metadata_wrapper('mlmta_playathon_slot', $slot);
+      if ($slot_wrapper->playathon_pursuit_reference->pursuit_teacher_reference->raw() != $teacher_id) {
+        drupal_set_message(t('Slot %slot is no longer available. Please choose a different slot.', array('%slot' => $slot->name)), 'warning');
+        $error_flag = TRUE;
+
+      }
     }
-    form_set_error('field_playathon_slot', 'Slot error.');
+    if ($error_flag) form_set_error('field_playathon_slot', 'Slot error.');
   }
 }
 
