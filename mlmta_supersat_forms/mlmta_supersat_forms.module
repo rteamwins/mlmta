@@ -69,13 +69,13 @@ function mlmta_supersat_forms_menu(){
     'type' => MENU_NORMAL_ITEM,
    );
 
-   //$items['supersat-playathon-registrations-csv-download'] = array(
-   // 'title' => 'Download Playathon registrations as CSV',
-   // 'description' => 'Download CSV',
-   // 'access arguments' => array('create timeblock entities'),
-   // 'page callback' => 'mlmta_supersat_forms_produce_playathon_registration_csv',
-   // 'type' => MENU_CALLBACK,
-   //);
+   $items['supersat-mc-registrations-csv-download'] = array(
+    'title' => 'Download Mini Master Class registrations as CSV',
+    'description' => 'Download CSV',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'mlmta_supersat_forms_produce_mc_registration_csv',
+    'type' => MENU_CALLBACK,
+   );
    
 
   return $items;
@@ -506,12 +506,12 @@ function timeblock_form_views_form_pursuits_1_supersat_rearrange_alter(&$form, &
 
 
 /**
- * Produce complete CSV of SuperSat PLayathon registrations
+ * Produce complete CSV of SuperSat Mini Master Class registrations
  * @todo This may actually not work so well. I will need to do a separate CSV download for Playathon
  *
  * NOT USED. Using Views instead
  */
-function mlmta_supersat_forms_produce_playathon_registration_csv() {
+function mlmta_supersat_forms_produce_mc_registration_csv() {
   // Get the records
   $event_id = variable_get('tenuto_supersat_event', NULL);
   if(!$event_id) {
@@ -523,7 +523,7 @@ function mlmta_supersat_forms_produce_playathon_registration_csv() {
   $q->fields('pursuit', array('pursuit_id'));
   
   // Condition type = playathon
-  $q->condition('type', 'playathon');
+  $q->condition('type', 'mc');
   
   // Filter event SuperSat event
   $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
@@ -566,7 +566,7 @@ function mlmta_supersat_forms_produce_playathon_registration_csv() {
     'pursuit_order_paid' => 'Paid',
     'pursuit_active' => 'Active',
     'type' => 'Type',
-    'label' => 'Registrant(s)',
+    'label' => 'Registrant',
     'pursuit_student_reference' => array(
       'student_first_name' => 'Student first name',
       'student_last_name' => 'Student last name',
@@ -577,16 +577,14 @@ function mlmta_supersat_forms_produce_playathon_registration_csv() {
       'field_student_family' => array(
         'label' => 'Student group',
       ),
-     ),
-    'field_piano_solo_level'=>'Level',
+    ),
+    'field_mc_slot_length' => 'Slot length',
+    'field_preferred_mc_time' => 'Preferred time',
     'pursuit_piece_reference' => array(
       'label' => 'Piece',
       'piece_composer' => array('name' => 'Composer'),
       'piece_duration' => 'Duration',
     ),
-    'pursuit_duration' => 'Total duration',
-    'pursuit_trimmed_duration' => 'Trimmed duration',
-    'pursuit_instrument' => 'Instrument',
     'pursuit_teacher_reference' => array(
       'teacher_first_name' => 'Teacher first name',
       'teacher_last_name' => 'Teacher last name',
@@ -608,8 +606,7 @@ function mlmta_supersat_forms_produce_playathon_registration_csv() {
   );
   
   $cardinality_index = array(
-    'pursuit_piece_reference' => 2,
-  'pursuit_student_reference' => 2,
+    'pursuit_piece_reference' => 5,
   );
   
   $header_array = mlmta_base_form_build_csv_header($structure, $cardinality_index);
