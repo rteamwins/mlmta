@@ -100,7 +100,7 @@ function mlmta_supersat_playathon_form_validate($form, $form_state) {
     $error_flag = FALSE;
     foreach ($slots as $slot) {
       $slot_wrapper = entity_metadata_wrapper('mlmta_playathon_slot', $slot);
-      if ($slot_wrapper->playathon_pursuit_reference->pursuit_teacher_reference->raw() != $teacher_id) {
+      if ($slot_wrapper->playathon_pursuit_reference->pursuit_teacher_reference[0]->raw() != $teacher_id) {
         drupal_set_message(t('Slot %slot is no longer available. Please choose a different slot.', array('%slot' => $slot->name)), 'warning');
         $error_flag = TRUE;
 
