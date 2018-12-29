@@ -345,6 +345,7 @@ function mlmta_recital_forms_configuration_form($form, &$form_state) {
   
   $form['email_fieldset']['tenuto_recital_email_confirmation_text'] = array(
     '#type' => 'text_format',
+    '#format' => 'full_html',
     '#title' => t('Confirmation email text for recital'),
     '#default_value' => variable_get('tenuto_recital_email_confirmation_text', ''),
     '#rows' => 9,
@@ -356,6 +357,7 @@ function mlmta_recital_forms_configuration_form($form, &$form_state) {
   );
   $form['scheduling_email_fieldset']['tenuto_recital_email_scheduling_text'] = array(
     '#type' => 'text_format',
+    '#format' => 'full_html',
     '#title' => t('Scheduling email text for recital'),
     '#default_value' => variable_get('tenuto_recital_email_scheduling_text', ''),
     '#rows' => 9,

@@ -299,6 +299,7 @@ function mlmta_supersat_forms_configuration_form($form, &$form_state) {
   $form['email_fieldset']['tenuto_supersat_email_confirmation_text'] = array(
     '#type' => 'text_format',
     '#title' => t('Confirmation email text'),
+    '#format' => 'full_html',
     '#default_value' => variable_get('tenuto_supersat_email_confirmation_text', ''),
     '#rows' => 9,
   );
@@ -310,6 +311,7 @@ function mlmta_supersat_forms_configuration_form($form, &$form_state) {
   $form['scheduling_email_fieldset']['tenuto_supersat_email_scheduling_text'] = array(
     '#type' => 'text_format',
     '#title' => t('Scheduling email text'),
+    '#format' => 'full_html',
     '#default_value' => variable_get('tenuto_supersat_email_scheduling_text', ''),
     '#rows' => 9,
   );
