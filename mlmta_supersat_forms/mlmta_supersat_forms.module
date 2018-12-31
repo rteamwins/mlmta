@@ -413,12 +413,12 @@ function mlmta_supersat_forms_tokens($type, $tokens, array $data = array(), arra
       switch ($name) {
         case 'tenuto-supersat-email-confirmation-text':
           $value = variable_get('tenuto_supersat_email_confirmation_text','');
-          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $value = $sanitize ? filter_xss(token_replace($value), array('a', 'em', 'strong', 'b', 'cite', 'blockquote', 'code', 'ul', 'ol', 'li', 'dl', 'dt', 'dd','table','td','tr','th')) : token_replace($value);
           $replacements[$original] = $value;
           break;
         case 'tenuto-supersat-email-scheduling-text':
           $value = variable_get('tenuto_supersat_email_scheduling_text','');
-          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+          $value = $sanitize ? filter_xss(token_replace($value), array('a', 'em', 'strong', 'b', 'cite', 'blockquote', 'code', 'ul', 'ol', 'li', 'dl', 'dt', 'dd','table','td','tr','th')) : token_replace($value);
           $replacements[$original] = $value;
           break;
         case 'tenuto-supersat-form-deadline':
