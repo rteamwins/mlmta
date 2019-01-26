@@ -640,6 +640,9 @@ function mlmta_cmf_forms_commerce_checkout_pane_info_alter(&$checkout_pane) {
   global $user;
   $current_order = commerce_cart_order_load($user->uid);
   $is_cmf = FALSE;
+  if (empty($current_order)) {
+    return;
+  }
   $order_wrapper = entity_metadata_wrapper('commerce_order', $current_order);
   foreach ($order_wrapper->commerce_line_items->getIterator() as $line_wrapper) {
     if ($line_wrapper->commerce_product->sku->value() == 'cmf') {
