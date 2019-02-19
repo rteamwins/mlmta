@@ -208,6 +208,7 @@ function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
     if (empty($event)) {
         return 'Error: the event id is incorrect. Contact the site administrator.';
     }
+    drupal_set_title('CMF Room Schedules');
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'taxonomy_term')
         ->entityCondition('bundle', 'rooms')->fieldCondition('field_event_reference', 'target_id', $event->event_id);
