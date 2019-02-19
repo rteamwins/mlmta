@@ -205,7 +205,6 @@ function mlmta_cmf_room_schedule_all() {
  * Creates a form to select room to print
  */
 function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
-    
     if (empty($event)) {
         return 'Error: the event id is incorrect. Contact the site administrator.';
     }
@@ -222,7 +221,7 @@ function mlmta_cmf_room_schedule_room_form($form, &$form_state, $event) {
         }
         
     } else {
-        return 'No rooms have been defined';
+        return array('dummy' => array('#markup' => 'No rooms have been defined'));
     }
     
     $form['room'] = array(
