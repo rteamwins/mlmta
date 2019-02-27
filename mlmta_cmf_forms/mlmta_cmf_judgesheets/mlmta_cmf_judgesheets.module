@@ -122,7 +122,7 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     // Teacher name
     $pdf->SetFont('freesans', 'B', 10);
     $teacher_items = $teacher_reference_handler->get_items($row);
-    $pdf->SetXY(140, 53, TRUE);
+    $pdf->SetXY(142, 53, TRUE);
     $pdf->Write(0, 'Teacher: '.$teacher_items[0]['raw']['entity']->name);
     $pdf->SetFont('freesans', '', 10);
   
