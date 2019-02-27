@@ -61,13 +61,6 @@ function mlmta_cmf_judgesheets_entry(){
 }
 
 
-function mlmta_cmf_judgesheets_sort($pursuit_a, $pursuit_b) {
-  $student_a = student_load($pursuit_a->pursuit_student_reference['und'][0]['target_id']);
-  $student_b = student_load($pursuit_b->pursuit_student_reference['und'][0]['target_id']);
-  $last_name_a = $student_a->student_last_name['und'][0]['value'];
-  $last_name_b = $student_b->student_last_name['und'][0]['value'];
-  return (strcmp($last_name_a, $last_name_b));
-}
 /*
  * Generates the pdf
  * @param view $view
@@ -155,7 +148,7 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     // TEacher code
     $teacher_items = $teacher_reference_handler->get_items($row);
     $pdf->SetX(126, TRUE);
-    $pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_id);
+    $pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_code['und'][0]['value']);
     
     // Years with current teacher. See if there is a calculated field for this as well!
     $pdf->SetX(178.8, TRUE);
