@@ -115,8 +115,15 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     // Student name
     $pdf->SetFont('freesans', 'B', 14);
     $pdf->SetXY(19, 53, TRUE);
-    $name_and_code = $view->render_field('title', $row_index) . '. (Student ID: '. $student_items[0]['raw']['entity']->student_id .')';
+    $name_and_code = $view->render_field('title', $row_index) . '. (St. ID: '. $student_items[0]['raw']['entity']->student_id .')';
     $pdf->Write(0, $name_and_code);
+    
+    
+    // Teacher name
+    $pdf->SetFont('freesans', 'B', 10);
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $pdf->SetXY(140, 53, TRUE);
+    $pdf->Write(0, 'Teacher: '.$teacher_items[0]['raw']['entity']->name);
     $pdf->SetFont('freesans', '', 10);
   
     // Level
@@ -146,7 +153,7 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     $pdf->SetX(120, TRUE);
     
     // TEacher code
-    $teacher_items = $teacher_reference_handler->get_items($row);
+    
     $pdf->SetX(126, TRUE);
     $pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_code['und'][0]['value']);
     
