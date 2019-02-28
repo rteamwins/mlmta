@@ -148,7 +148,7 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
       //$row[] = $pieces;
       $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center');
       $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_solo_level->value(), 'align' => 'center');
-      $row[] = array('data' => $duration . '<br/>('.$trimmed. ')', 'align' => 'center');
+      $row[] = array('data' => $duration . ' ('.$trimmed. ')', 'align' => 'center');
 
       $rows[] = array('data' => $row, 'nobr' => 'true', 'style' => 'background-color:'.$bg.';');
     }
