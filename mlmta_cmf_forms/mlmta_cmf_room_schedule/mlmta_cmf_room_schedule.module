@@ -104,13 +104,13 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
     $pursuit_ids = array_keys($result['pursuit']);
     $rows = array();
     $header = array(
-        array('data' => 'Number', 'align' => 'center'),
-        array('data' => 'Start time', 'align' => 'center'),
-        array('data' => 'Performer', 'align' => 'center'),
+        array('data' => 'N.', 'align' => 'center', 'width' => '25'),
+        array('data' => 'Start time', 'align' => 'center', 'width' => '60'),
+        array('data' => 'Performers', 'align' => 'center', 'width' => '140'),
 //        array('data' => 'Pieces', 'align' => 'center'),
-        array('data'=>'Teacher', 'align' => 'center'),
+        array('data'=>'Teacher', 'align' => 'center','width' => '150'),
         array('data'=>'Level', 'align' => 'center'),
-        array('data'=>'Length', 'align' => 'center'),
+        array('data'=>'Length', 'align' => 'center', 'width' => '60'),
     );
     $bg = '#FFFFFF';
     foreach ($pursuit_ids as $pursuit_id) {
@@ -142,13 +142,13 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
         $teacher = implode(', ', $teachers);
       }
       
-      $row[] = $is_break ? '&nbsp;' : array('data' => $w->pursuit_contestant_number->value(), 'align' => 'center');
-      $row[] = array('data' => empty($w->pursuit_date->value->value()) ? '' : date('g:i A' ,$w->pursuit_date->value->value()), 'align' => 'center');
-      $row[] = $is_break ? array('data' => 'BREAK','align' => 'center') : array('data'=>$w->title->value(), 'align' => 'center');
+      $row[] = $is_break ? '&nbsp;' : array('data' => $w->pursuit_contestant_number->value(), 'align' => 'center', 'width' => '25');
+      $row[] = array('data' => empty($w->pursuit_date->value->value()) ? '' : date('g:i A' ,$w->pursuit_date->value->value()), 'align' => 'center','width' => '60');
+      $row[] = $is_break ? array('data' => 'BREAK','align' => 'center') : array('data'=>$w->title->value(), 'align' => 'center', 'width' => '140');
       //$row[] = $pieces;
-      $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center');
+      $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center', 'width' => '150');
       $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_solo_level->value(), 'align' => 'center');
-      $row[] = array('data' => $duration . ' ('.$trimmed. ')', 'align' => 'center');
+      $row[] = array('data' => $duration . ' ('.$trimmed. ')', 'align' => 'center','width' => '60');
 
       $rows[] = array('data' => $row, 'nobr' => 'true', 'style' => 'background-color:'.$bg.';');
     }
