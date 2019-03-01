@@ -156,7 +156,7 @@ function mlmta_cmf_room_schedule_output ($tid, $pdf, $variables = array()) {
     $output .= theme('table', array('header'=>$header, 'rows' => $rows, 'attributes' => array('border'=>1, 'cellpadding' => 3)));
       // set font
       
-    $pdf->AddPage('L', 'LETTER');
+    $pdf->AddPage('P', 'LETTER');
     $pdf->room = $room_name;
     $pdf->timeblock= $timeblock_wrapper->title->value();  
     $pdf->SetFont('helvetica', '', 9);

@@ -62,7 +62,7 @@ function page_as_pdf_entry() {
 
   // Delete the contextual links also
   //$node->content = preg_replace('!\s*<div class="contextual-links-wrapper">.*?</div>!sim', '', $node->content);
-  $pdf = new NORMALPDF('L','mm', 'LETTER');
+  $pdf = new NORMALPDF('P','mm', 'LETTER'); // Switch to "L" for DSF?
   $pdf->SetAutoPageBreak(true, 25);
   $pdf->setFontSubsetting(false);
   // set header and footer fonts
