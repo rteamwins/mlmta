@@ -258,7 +258,7 @@ function mlmta_recital_forms_configuration_form($form, &$form_state) {
     $form['tenuto_recital_event'] = array(
       '#type' => 'select',
       '#title' => 'Event',
-      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to these forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
       '#required' => TRUE,
       '#options' => $options,
       '#default_value' => $event_id,
