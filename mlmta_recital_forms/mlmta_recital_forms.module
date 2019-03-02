@@ -243,27 +243,29 @@ function mlmta_recital_forms_configuration_form($form, &$form_state) {
   if ($event_id) {
     $event_wrapper = entity_metadata_wrapper('event', $event_id);
     $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
+    $form_state['event_id'] = $event_id; 
   } 
   
   $events = event_load_all();
-  if (user_access('administer event types')) {
-    if (!empty($events)) {
   
-      $options = array();
-      foreach ($events as $id => $event) {
-        $options[$id] = $events[$id]->title; 
-      }
-      
-      $form['tenuto_recital_event'] = array(
-        '#type' => 'select',
-        '#title' => 'Event',
-        '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
-        '#required' => TRUE,
-        '#options' => $options,
-        '#default_value' => $event_id,
-      );
+  if (!empty($events)) {
+
+    $options = array();
+    foreach ($events as $id => $event) {
+      $options[$id] = $events[$id]->title; 
     }
+    
+    $form['tenuto_recital_event'] = array(
+      '#type' => 'select',
+      '#title' => 'Event',
+      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+      '#required' => TRUE,
+      '#options' => $options,
+      '#default_value' => $event_id,
+      '#disabled' => user_access('administer event types') ? FALSE : TRUE,
+    );
   }
+  
 
   $form['tenuto_recital_chair_name'] = array(
     '#type' => 'textfield',
@@ -379,7 +381,7 @@ function mlmta_recital_forms_configuration_form_submit($form, &$form_state) {
   $event_date = strtotime($form_state['values']['tenuto_recital_event_date']);
   $activation_date = strtotime($form_state['values']['tenuto_recital_form_activation']);
 
-  
+//  watchdog('event_test', $activation_date);
   variable_set('tenuto_recital_form_deadline', $uts);
   variable_set('tenuto_recital_form_cutoff', $cutoff);
   variable_set('tenuto_recital_event_date', $event_date);
@@ -389,19 +391,17 @@ function mlmta_recital_forms_configuration_form_submit($form, &$form_state) {
   variable_set('tenuto_recital_chair_email_address', $form_state['values']['tenuto_recital_chair_email_address']);
   variable_set('tenuto_recital_chair_name', $form_state['values']['tenuto_recital_chair_name']);
   
-  if (isset($form_state['values']['tenuto_recital_event'])) {
-    variable_set('tenuto_recital_event', $form_state['values']['tenuto_recital_event']);
-    $event = event_load($form_state['values']['tenuto_recital_event']);
-    $event->cutoff = $cutoff;
-    $event->deadline = $uts;
-    $event->activation = $activation_date;
-    $event_wrapper = entity_metadata_wrapper('event', $event);
-    $event_wrapper->field_event_date = $event_date;
-    $event_wrapper->field_event_location = $form_state['values']['tenuto_recital_event_location'];
-    $event_wrapper->field_chair_name =  $form_state['values']['tenuto_recital_chair_name'];
-    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_recital_chair_email_address'];
-    event_save($event);   
-  }
+  $event = event_load($form_state['values']['tenuto_recital_event']);
+  $event->cutoff = $cutoff;
+  $event->deadline = $uts;
+  $event->activation = $activation_date;
+  $event_wrapper = entity_metadata_wrapper('event', $event);
+  $event_wrapper->field_event_date = $event_date;
+  $event_wrapper->field_event_location = $form_state['values']['tenuto_recital_event_location'];
+  $event_wrapper->field_chair_name =  $form_state['values']['tenuto_recital_chair_name'];
+  $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_recital_chair_email_address'];
+  event_save($event);   
+  
   drupal_set_message(t('The settings have been saved.'));
 }
 

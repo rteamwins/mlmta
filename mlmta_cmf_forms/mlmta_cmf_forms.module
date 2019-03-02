@@ -162,24 +162,24 @@ function mlmta_cmf_forms_configuration_form($form, &$form_state) {
   } 
   
   $events = event_load_all();
-  if (user_access('administer event types')) {
-    if (!empty($events)) {
   
-      $options = array();
-      foreach ($events as $id => $event) {
-        $options[$id] = $events[$id]->title; 
-      }
-      
-      $form['tenuto_cmf_event'] = array(
-        '#type' => 'select',
-        '#title' => 'Event',
-        '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
-        '#required' => TRUE,
-        '#options' => $options,
-        '#default_value' => $event_id,
-      );
+  if (!empty($events)) {
+    $options = array();
+    foreach ($events as $id => $event) {
+      $options[$id] = $events[$id]->title; 
     }
+    
+    $form['tenuto_cmf_event'] = array(
+      '#type' => 'select',
+      '#title' => 'Event',
+      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+      '#required' => TRUE,
+      '#options' => $options,
+      '#default_value' => $event_id,
+      '#disabled' => user_access('administer event types') ? FALSE : TRUE,
+    );
   }
+  
 
   $form['tenuto_cmf_chair_name'] = array(
     '#type' => 'textfield',
