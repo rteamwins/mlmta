@@ -367,7 +367,7 @@ function mlmta_supersat_forms_token_info() {
   $tokens = array();
   $tokens['tokens']['site']['tenuto-supersat-event'] = array(
     'name' => t('Tenuto system event linked to the Supersat forms'),
-    'description' => t('The event ID linked to the CMF forms.'),
+    'description' => t('The event ID linked to the Supersat forms.'),
   );
   $tokens['tokens']['site']['tenuto-supersat-email-confirmation-text'] = array(
     'name' => t('Tenuto system email confirmation text'),

@@ -413,8 +413,8 @@ function mlmta_recital_forms_configuration_form_submit($form, &$form_state) {
 function mlmta_recital_forms_token_info() {
   $tokens = array();
   $tokens['tokens']['site']['tenuto-recital-event'] = array(
-    'name' => t('Tenuto system event linked to the DSF forms'),
-    'description' => t('The event ID linked to the DSF forms.'),
+    'name' => t('Tenuto system event linked to these forms'),
+    'description' => t('The event ID linked to these forms.'),
   );
   $tokens['tokens']['site']['tenuto-recital-email-confirmation-text'] = array(
     'name' => t('Tenuto system email confirmation text for the recital'),
