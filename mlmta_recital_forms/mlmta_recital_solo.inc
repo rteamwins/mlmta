@@ -21,7 +21,7 @@ function _form_mlmta_recital_solo_steps() {
 }
 
 /**
- * MLMTA Piano Solo Registration form
+ * MLMTA Piano Solo Registration form.
  */
 function mlmta_recital_solo_form($form, &$form_state, $pursuit = NULL) {
   
