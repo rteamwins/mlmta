@@ -305,7 +305,7 @@ function mlmta_recital_solo_pieces($form, &$form_state) {
     $form['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value']['#default_value'] = $stored_values['piece1_fieldset']['piece_duration'][LANGUAGE_NONE][0]['value'];
     
     unset($form_state['input']['field_piano_solo_level']);
-    $form['field_recital_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_recital_solo_level'][LANGUAGE_NONE][0]['value'];
+    $form['field_piano_solo_level'][LANGUAGE_NONE]['#default_value'] = $stored_values['field_piano_solo_level'][LANGUAGE_NONE][0]['value'];
     
   }
     
