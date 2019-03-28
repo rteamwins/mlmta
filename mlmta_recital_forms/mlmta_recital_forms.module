@@ -589,7 +589,7 @@ function mlmta_recital_check_teacher_limits($pursuit) {
   }
   $number_flag = FALSE;
   $time_flag = FALSE;
-  if (count($pursuit_ids) > 3) {
+  if (count($pursuit_ids) > 4) {
     $number_flag = TRUE;
     drupal_set_message(t('You have registered more than 4 students in this recital. An email has been sent to the chair to alert her/him about this situation. Please get in touch with the chair to clarify.'), 'warning');
   }
