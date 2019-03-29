@@ -528,13 +528,13 @@ function mlmta_supersat_forms_produce_mc_registration_csv() {
   $q->condition('type', 'mc');
   
   // Filter event SuperSat event
-  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id', array(':event_id' => $event_id));
+  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id AND event_reference.entity_type = :type', array(':event_id' => $event_id, ':type' => 'pursuit'));
   
   // Filter active ones
-  $q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1');
+  $q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1 AND active.entity_type = :type');
   
   // Join to student reference 
-  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id');
+  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id AND pursuit_student.entity_type = :type');
   $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
   
   // Join to student last name
