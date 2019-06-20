@@ -622,7 +622,7 @@ function mlmta_supersat_forms_produce_mc_registration_csv() {
   
   foreach ($pursuits as $pursuit) {
     $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
-    $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
+    $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index); // @todo Use scheduling_form_build_csv_row instead!
     fputcsv($fh, $row);
   }
   drupal_exit();

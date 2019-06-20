@@ -884,6 +884,8 @@ function mlmta_base_form_family_form_validate($form, $form_state) {
  *      A flat array indicating cardinality bigger than 1, keyed by field name
  * @param Array $row
  *      The array of cells to be returned
+ *
+ *   DEPRECATED! Use scheduling_form_build_csv_row instead
  */
 function mlmta_base_form_build_csv_row($wrapper, $structure, $cardinality_index,  &$row = array()) {
   foreach ($structure as $key => $content) {

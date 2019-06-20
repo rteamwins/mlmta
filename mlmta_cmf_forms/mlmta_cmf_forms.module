@@ -605,6 +605,7 @@ function mlmta_cmf_forms_produce_registration_csv() {
   
   foreach ($pursuits as $pursuit) {
     $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    // @todo Use scheduling_form_build_csv_row instead!
     $row = mlmta_base_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
     fputcsv($fh, $row);
   }
