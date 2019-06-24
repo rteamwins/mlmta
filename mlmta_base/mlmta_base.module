@@ -487,7 +487,7 @@ function mlmta_base_edit_access_check($pursuit) {
  * Adds special css class to pursuits with time conflicts
  */
 function mlmta_base_preprocess_views_aggregator_results_table(&$vars) {
-  if(in_array($vars['view']->name, array('pursuits_1', 'pursuits_1_supersat', 'pursuits_1_cmf', 'pursuits_1_recitals'))) { // @todo Add new pursuit view names for each of the systems
+  if(!empty(strstr($vars['view']->name, 'pursuits_1'))) { 
     $rows = &$vars['rows'];
     foreach ($rows as $delta => $row) {
       // Add special class for conflicted pursuit
