@@ -618,6 +618,7 @@ function mlmta_supersat_forms_produce_mc_registration_csv() {
   drupal_add_http_header('Content-Type', 'text/csv; utf-8');
   drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-cmf-registrations.csv"');
   $fh = fopen('php://output', 'w');
+  fwrite($fh, "\xEF\xBB\xBF");
   fputcsv($fh, $header_array);
   
   foreach ($pursuits as $pursuit) {
