@@ -8,22 +8,14 @@ function mlmta_cmf_forms_menu(){
   $items = array();
   $items['cmf-solo-registration/new'] = array(
     'title' => t('Constance Murray solo registration form'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('mlmta_cmf_solo_form'),
+    'page callback' => 'mlmta_cmf_registration_forms',
+    'page arguments' => array('cmf_solo'),
+    //'page arguments' => array('mlmta_cmf_solo_form'),
     'access callback' => 'mlmta_base_module_date_access_check',
     'access arguments' => array(variable_get('tenuto_cmf_event')),
     'type' => MENU_CALLBACK,
-    'file' => 'mlmta_cmf_solo.inc',
+    //'file' => 'mlmta_cmf_solo.inc',
   );
-  
-  //$items['cmf-ensemble-registration/new'] = array(
-  //  'title' => t('CMF ensemble registration form'),
-  //  'page callback' => 'drupal_get_form',
-  //  'page arguments' => array('mlmta_cmf_ensemble_form'),
-  //  'access callback' => 'user_is_logged_in',
-  //  'type' => MENU_CALLBACK,
-  //  'file' => 'mlmta_cmf_ensemble.inc',
-  //);
    
   $items['admin/cmf-form/%ctools_js/%pursuit/view'] = array(
     'title' => 'CMF solo registration',
@@ -33,14 +25,14 @@ function mlmta_cmf_forms_menu(){
     'type' => MENU_CALLBACK,
   );
   
-  $items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
-    'title' => 'Constance Murray general settings',
-    'description' => 'General settings for the CMF forms.',
-    'access arguments' => array('create timeblock entities'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('mlmta_cmf_forms_configuration_form'),
-    'type' => MENU_NORMAL_ITEM,
-   );
+  //$items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
+  //  'title' => 'Constance Murray general settings',
+  //  'description' => 'General settings for the CMF forms.',
+  //  'access arguments' => array('create timeblock entities'),
+  //  'page callback' => 'drupal_get_form',
+  //  'page arguments' => array('mlmta_cmf_forms_configuration_form'),
+  //  'type' => MENU_NORMAL_ITEM,
+  // );
 
    $items['cmf-registrations-csv-download'] = array(
     'title' => 'Download registrations as CSV',
@@ -50,6 +42,29 @@ function mlmta_cmf_forms_menu(){
     'type' => MENU_CALLBACK,
    );
    
+  $items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
+    'title' => 'CMF settings',
+    'description' => 'General settings for the event linked to the CMF.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'mlmta_cmf_linked_event_configuration_form',
+    'type' => MENU_NORMAL_ITEM,
+   );
+  
+  $items['admin/config/tenuto-registrations/manage/cmf-settings/event-linking'] = array(
+    'title' => 'Event link',
+    'description' => 'General settings for the CMF forms.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_cmf_configuration_form'),
+    'type' => MENU_LOCAL_TASK,
+   );
+  
+  $items['admin/config/tenuto-registrations/manage/cmf-settings/linked-event-settings'] = array(
+    'title' => 'CMF settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+   );
+  
     //$items['admin/download-program'] = array(
     //  'title' => 'Download recital program',
     //  'description' => 'Generates an html snipped with a table downloaded as a doc file.',
@@ -82,27 +97,6 @@ function mlmta_cmf_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration
   if (in_array($pursuit->type, array('cmf_solo'))) {  // @todo Create these pursuit types
     $max_duration = 15 * 60; 
   }
-}
-
-////////////  Display functions //////////////////
-
-
-/**
- * Creates a render array of the pursuit with all relations
- */
-function mlmta_cmf_forms_page($pursuit) {
-  list(, , $bundle) = entity_extract_ids('pursuit', $pursuit);
-  $bundle_label = scheduling_bundle_label('pursuit', $bundle);
-  drupal_set_title($bundle_label);
-  return mlmta_cmf_forms_multiple_page(array($pursuit));
-}
-
-/**
- * Builds and returns a renderable array for multiple pursuit. Built completely with students, teachers, accompanists, families and pieces
- */
-function mlmta_cmf_forms_multiple_page($pursuits) {
-  $page = entity_view('pursuit', $pursuits, 'complete'); // @todo Create this entity view mode
-  return $page;
 }
 
 
@@ -144,26 +138,190 @@ function mlmta_cmf_forms_modal_show($ajax, $pursuit){
 }
 
 
+///**
+// * Configuration form for mlmta solo
+// */
+//function mlmta_cmf_forms_configuration_form($form, &$form_state) {
+//  // Provide a default date in the format YYYY-MM-DD HH:MM:SS.
+//  $event_date = format_date(variable_get('tenuto_cmf_event_date','1577854800'), 'custom', 'Y-m-d H:i:s');
+//  $deadline = format_date(variable_get('tenuto_cmf_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
+//  $cutoff = format_date(variable_get('tenuto_cmf_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
+//  $format = "m-d-Y h:i A";
+//  
+//  $event_id = variable_get('tenuto_cmf_event');
+//  $form_activation = strtotime('2000-1-1 12:00:00');
+//  if ($event_id) {
+//    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+//    $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
+//  } 
+//  
+//  $events = event_load_all();
+//  
+//  if (!empty($events)) {
+//    $options = array();
+//    foreach ($events as $id => $event) {
+//      $options[$id] = $events[$id]->title; 
+//    }
+//    
+//    $form['tenuto_cmf_event'] = array(
+//      '#type' => 'select',
+//      '#title' => 'Event',
+//      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+//      '#required' => TRUE,
+//      '#options' => $options,
+//      '#default_value' => $event_id,
+//      '#disabled' => user_access('administer event types') ? FALSE : TRUE,
+//    );
+//  }
+//  
+//
+//  $form['tenuto_cmf_chair_name'] = array(
+//    '#type' => 'textfield',
+//    '#title' => 'Chair name',
+//    '#description' => 'Enter the name of the event chair. For more than one chair, separate names with commas.',
+//    '#default_value' => variable_get('tenuto_cmf_chair_name', NULL),
+//  );
+//  
+//  $form['tenuto_cmf_chair_email_address'] = array(
+//    '#type' => 'textfield',
+//    '#title' => 'Chair email',
+//    '#description' => 'Enter the email address of the event chair. For more than one chair, separate email with commas.',
+//    '#default_value' => variable_get('tenuto_cmf_chair_email_address', NULL),
+//  );
+//  
+//  $form['location_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Location'),
+//  );
+//  
+//  $form['location_fieldset']['tenuto_cmf_event_location'] = array(
+//    '#type' => 'textarea',
+//    '#title' => t('Location for the Constance Murray Piano Festival'),
+//    '#default_value' => variable_get('tenuto_cmf_event_location', ''),
+//  );
+//  
+//  $form['event_date_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Date'),
+//  );
+//  $form['event_date_fieldset']['tenuto_cmf_event_date'] = array(
+//     '#type' => 'date_select', 
+//     '#title' => t('Select a date for the Constance Murray Piano Festival'),
+//     '#description' => 'This is the date when the event will take place.',
+//     '#default_value' => $event_date, 
+//     '#date_format' => 'm-d-Y',
+//  );
+//  
+//  $form['event_activation_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Activation date'),
+//  );
+//  $form['event_activation_fieldset']['tenuto_cmf_form_activation'] = array(
+//     '#type' => 'date_select', 
+//     '#title' => t('Select an activation date for the registration form'),
+//     '#description' => 'The form will not be shown before this date.',
+//     '#default_value' => $form_activation, 
+//     '#date_format' => $format,
+//  );
+//  
+//  $form['deadline_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Deadline'),
+//  );
+//  $form['deadline_fieldset']['tenuto_cmf_form_deadline'] = array(
+//     '#type' => 'date_select', 
+//     '#title' => t('Select a registration deadline'),
+//     '#description' => 'The forms will stop accepting registrations after this deadline.',
+//     '#default_value' => $deadline, 
+//     '#date_format' => $format,
+//  );
+//  
+//  $form['cutoff_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Cutoff'),
+//  );
+//  $form['cutoff_fieldset']['tenuto_cmf_form_cutoff'] = array(
+//     '#type' => 'date_select', 
+//     '#title' => t('Select an age cutoff date for recital'),
+//     '#description' => 'This is the date used to calculate the age of the student and the length of study with current teacher. Often this is either the same as the deadline, or the date of the event.',
+//     '#default_value' => $cutoff, 
+//     '#date_format' => $format,
+//  );
+//  
+//  $form['email_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Confirmation Email'),
+//  );
+//  
+//  $form['email_fieldset']['tenuto_cmf_email_confirmation_text'] = array(
+//    '#type' => 'text_format',
+//    '#title' => t('Confirmation email text'),
+//    '#format' => 'full_html',
+//    '#default_value' => variable_get('tenuto_cmf_email_confirmation_text', ''),
+//    '#rows' => 9,
+//  );
+//  
+//  $form['scheduling_email_fieldset'] = array(
+//    '#type' => 'fieldset',
+//    '#title' => t('Scheduling Email'),
+//  );
+//  $form['scheduling_email_fieldset']['tenuto_cmf_email_scheduling_text'] = array(
+//    '#type' => 'text_format',
+//    '#format' => 'full_html',
+//    '#title' => t('Scheduling email text'),
+//    '#default_value' => variable_get('tenuto_cmf_email_scheduling_text', ''),
+//    '#rows' => 9,
+//  );
+//  
+//  $form['submit'] = array(
+//    '#type' => 'submit',
+//    '#value' => 'Submit',
+//    '#weight'=> 99,
+//  );
+//  return $form;
+//}
+///**
+// * Submit handler
+// */
+//function mlmta_cmf_forms_configuration_form_submit($form, &$form_state) {
+//  $uts = strtotime($form_state['values']['tenuto_cmf_form_deadline']);
+//  $cutoff = strtotime($form_state['values']['tenuto_cmf_form_cutoff']);
+//  $event_date = strtotime($form_state['values']['tenuto_cmf_event_date']);
+//  $activation_date = strtotime($form_state['values']['tenuto_cmf_form_activation']);
+//  
+//  variable_set('tenuto_cmf_form_deadline', $uts);
+//  variable_set('tenuto_cmf_form_cutoff', $cutoff);
+//  variable_set('tenuto_cmf_event_date', $event_date);
+//  variable_set('tenuto_cmf_event_location', $form_state['values']['tenuto_cmf_event_location']);
+//  variable_set('tenuto_cmf_email_confirmation_text', $form_state['values']['tenuto_cmf_email_confirmation_text']['value']);
+//  variable_set('tenuto_cmf_email_scheduling_text', $form_state['values']['tenuto_cmf_email_scheduling_text']['value']);
+//  variable_set('tenuto_cmf_chair_email_address', $form_state['values']['tenuto_cmf_chair_email_address']);
+//  variable_set('tenuto_cmf_chair_name', $form_state['values']['tenuto_cmf_chair_name']);
+//  
+//  if (isset($form_state['values']['tenuto_cmf_event'])) {
+//    variable_set('tenuto_cmf_event', $form_state['values']['tenuto_cmf_event']);
+//    $event = event_load($form_state['values']['tenuto_cmf_event']);
+//    $event->cutoff = $cutoff;
+//    $event->deadline = $uts;
+//    $event->activation = $activation_date;
+//    $event_wrapper = entity_metadata_wrapper('event', $event);
+//    $event_wrapper->field_event_date = $event_date;
+//    $event_wrapper->field_event_location = $form_state['values']['tenuto_cmf_event_location'];
+//    $event_wrapper->field_chair_name =  $form_state['values']['tenuto_cmf_chair_name'];
+//    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_cmf_chair_email_address'];
+//    
+//    event_save($event);   
+//  }
+//  drupal_set_message(t('The settings have been saved.'));
+//}
+
 /**
- * Configuration form for mlmta solo
+ * Configuration form for this event
  */
-function mlmta_cmf_forms_configuration_form($form, &$form_state) {
-  // Provide a default date in the format YYYY-MM-DD HH:MM:SS.
-  $event_date = format_date(variable_get('tenuto_cmf_event_date','1577854800'), 'custom', 'Y-m-d H:i:s');
-  $deadline = format_date(variable_get('tenuto_cmf_form_deadline','1577854800'), 'custom', 'Y-m-d H:i:s');
-  $cutoff = format_date(variable_get('tenuto_cmf_form_cutoff','1577854800'), 'custom', 'Y-m-d H:i:s');
-  $format = "m-d-Y h:i A";
-  
-  $event_id = variable_get('tenuto_cmf_event');
-  $form_activation = strtotime('2000-1-1 12:00:00');
-  if ($event_id) {
-    $event_wrapper = entity_metadata_wrapper('event', $event_id);
-    $form_activation = format_date($event_wrapper->activation->value(),'custom', 'Y-m-d H:i:s');
-  } 
-  
+function mlmta_cmf_configuration_form($form, &$form_state) {
   $events = event_load_all();
-  
   if (!empty($events)) {
+
     $options = array();
     foreach ($events as $id => $event) {
       $options[$id] = $events[$id]->title; 
@@ -175,156 +333,151 @@ function mlmta_cmf_forms_configuration_form($form, &$form_state) {
       '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the CMF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
       '#required' => TRUE,
       '#options' => $options,
-      '#default_value' => $event_id,
-      '#disabled' => user_access('administer event types') ? FALSE : TRUE,
+      '#default_value' => variable_get('tenuto_cmf_event',NULL),
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => 'Submit',
+      '#weight'=> 99,
+    );
+  } else {
+    $form['error'] = array(
+      '#markup' => 'ERROR: There are no events defined in the system!',
     );
   }
-  
 
-  $form['tenuto_cmf_chair_name'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Chair name',
-    '#description' => 'Enter the name of the event chair. For more than one chair, separate names with commas.',
-    '#default_value' => variable_get('tenuto_cmf_chair_name', NULL),
-  );
-  
-  $form['tenuto_cmf_chair_email_address'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Chair email',
-    '#description' => 'Enter the email address of the event chair. For more than one chair, separate email with commas.',
-    '#default_value' => variable_get('tenuto_cmf_chair_email_address', NULL),
-  );
-  
-  $form['location_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Location'),
-  );
-  
-  $form['location_fieldset']['tenuto_cmf_event_location'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Location for the Constance Murray Piano Festival'),
-    '#default_value' => variable_get('tenuto_cmf_event_location', ''),
-  );
-  
-  $form['event_date_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Date'),
-  );
-  $form['event_date_fieldset']['tenuto_cmf_event_date'] = array(
-     '#type' => 'date_select', 
-     '#title' => t('Select a date for the Constance Murray Piano Festival'),
-     '#description' => 'This is the date when the event will take place.',
-     '#default_value' => $event_date, 
-     '#date_format' => 'm-d-Y',
-  );
-  
-  $form['event_activation_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Activation date'),
-  );
-  $form['event_activation_fieldset']['tenuto_cmf_form_activation'] = array(
-     '#type' => 'date_select', 
-     '#title' => t('Select an activation date for the registration form'),
-     '#description' => 'The form will not be shown before this date.',
-     '#default_value' => $form_activation, 
-     '#date_format' => $format,
-  );
-  
-  $form['deadline_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Deadline'),
-  );
-  $form['deadline_fieldset']['tenuto_cmf_form_deadline'] = array(
-     '#type' => 'date_select', 
-     '#title' => t('Select a registration deadline'),
-     '#description' => 'The forms will stop accepting registrations after this deadline.',
-     '#default_value' => $deadline, 
-     '#date_format' => $format,
-  );
-  
-  $form['cutoff_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Cutoff'),
-  );
-  $form['cutoff_fieldset']['tenuto_cmf_form_cutoff'] = array(
-     '#type' => 'date_select', 
-     '#title' => t('Select an age cutoff date for recital'),
-     '#description' => 'This is the date used to calculate the age of the student and the length of study with current teacher. Often this is either the same as the deadline, or the date of the event.',
-     '#default_value' => $cutoff, 
-     '#date_format' => $format,
-  );
-  
-  $form['email_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Confirmation Email'),
-  );
-  
-  $form['email_fieldset']['tenuto_cmf_email_confirmation_text'] = array(
-    '#type' => 'text_format',
-    '#title' => t('Confirmation email text'),
-    '#format' => 'full_html',
-    '#default_value' => variable_get('tenuto_cmf_email_confirmation_text', ''),
-    '#rows' => 9,
-  );
-  
-  $form['scheduling_email_fieldset'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Scheduling Email'),
-  );
-  $form['scheduling_email_fieldset']['tenuto_cmf_email_scheduling_text'] = array(
-    '#type' => 'text_format',
-    '#format' => 'full_html',
-    '#title' => t('Scheduling email text'),
-    '#default_value' => variable_get('tenuto_cmf_email_scheduling_text', ''),
-    '#rows' => 9,
-  );
-  
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => 'Submit',
-    '#weight'=> 99,
-  );
   return $form;
 }
+
 /**
  * Submit handler
  */
-function mlmta_cmf_forms_configuration_form_submit($form, &$form_state) {
-  $uts = strtotime($form_state['values']['tenuto_cmf_form_deadline']);
-  $cutoff = strtotime($form_state['values']['tenuto_cmf_form_cutoff']);
-  $event_date = strtotime($form_state['values']['tenuto_cmf_event_date']);
-  $activation_date = strtotime($form_state['values']['tenuto_cmf_form_activation']);
-  
-  variable_set('tenuto_cmf_form_deadline', $uts);
-  variable_set('tenuto_cmf_form_cutoff', $cutoff);
-  variable_set('tenuto_cmf_event_date', $event_date);
-  variable_set('tenuto_cmf_event_location', $form_state['values']['tenuto_cmf_event_location']);
-  variable_set('tenuto_cmf_email_confirmation_text', $form_state['values']['tenuto_cmf_email_confirmation_text']['value']);
-  variable_set('tenuto_cmf_email_scheduling_text', $form_state['values']['tenuto_cmf_email_scheduling_text']['value']);
-  variable_set('tenuto_cmf_chair_email_address', $form_state['values']['tenuto_cmf_chair_email_address']);
-  variable_set('tenuto_cmf_chair_name', $form_state['values']['tenuto_cmf_chair_name']);
-  
-  if (isset($form_state['values']['tenuto_cmf_event'])) {
-    variable_set('tenuto_cmf_event', $form_state['values']['tenuto_cmf_event']);
-    $event = event_load($form_state['values']['tenuto_cmf_event']);
-    $event->cutoff = $cutoff;
-    $event->deadline = $uts;
-    $event->activation = $activation_date;
-    $event_wrapper = entity_metadata_wrapper('event', $event);
-    $event_wrapper->field_event_date = $event_date;
-    $event_wrapper->field_event_location = $form_state['values']['tenuto_cmf_event_location'];
-    $event_wrapper->field_chair_name =  $form_state['values']['tenuto_cmf_chair_name'];
-    $event_wrapper->field_chair_email_address =  $form_state['values']['tenuto_cmf_chair_email_address'];
-    
-    event_save($event);   
-  }
-  drupal_set_message(t('The settings have been saved.'));
+function mlmta_cmf_configuration_form_submit($form, &$form_state) {
+  variable_set('tenuto_cmf_event', $form_state['values']['tenuto_cmf_event']);
+  drupal_set_message('The setting has been saved.');
 }
+
+/**
+ * Configuration for this event
+ */
+function mlmta_cmf_linked_event_configuration_form() {
+  $event = event_load(variable_get('tenuto_cmf_event'));
+  if (empty($event)) {
+    drupal_set_message('There is no linked event.', 'error');
+    return 'Error';
+  }
+  module_load_include('inc', 'event', 'event.admin');
+  $form = drupal_get_form('event_form', $event);
+  // unset things that managers don't need to see. Horrible hack, oh well
+  global $user;
+  if (!in_array('administrator', array_values($user->roles))) {
+    unset($form['menu_name']);
+    unset($form['views_path']);
+  }
+  return $form;
+}
+
+///**
+// * Implements hook_token_info().
+// *
+// * Creates token replacements for the solo site
+// */
+//function mlmta_cmf_forms_token_info() {
+//  $tokens = array();
+//  $tokens['tokens']['site']['tenuto-cmf-event'] = array(
+//    'name' => t('Tenuto system event linked to the CMF forms'),
+//    'description' => t('The event ID linked to the CMF forms.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-email-confirmation-text'] = array(
+//    'name' => t('Tenuto system email confirmation text'),
+//    'description' => t('Text to be inserted in the email confirmation above the order summary.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-email-scheduling-text'] = array(
+//    'name' => t('Tenuto system email scheduling text'),
+//    'description' => t('Text to be inserted in the scheduling email above the order summary.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-form-deadline'] = array(
+//    'name' => t('Tenuto system form deadline'),
+//    'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-event_date'] = array(
+//    'name' => t('Tenuto system date'),
+//    'description' => t('The date for the event.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-event_location'] = array(
+//    'name' => t('Tenuto system event location'),
+//    'description' => t('The location of the vent.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-chair-name'] = array(
+//    'name' => t('Tenuto system event chair name'),
+//    'description' => t('The chair name of the event.'),
+//  );
+//  $tokens['tokens']['site']['tenuto-cmf-chair-email-address'] = array(
+//    'name' => t('Tenuto system event chair email'),
+//    'description' => t('The chair email for the event.'),
+//  );
+//  return $tokens;
+//}
+//
+///**
+// * Implements hook_tokens()
+// * Provides value for token
+// */
+//function mlmta_cmf_forms_tokens($type, $tokens, array $data = array(), array $options = array()) {
+//  $replacements = array();
+//  if ($type == 'site') {
+//    $sanitize = !empty($options['sanitize']);
+//    // Loop through the available tokens.
+//    foreach ($tokens as $name => $original) {
+//      switch ($name) {
+//        case 'tenuto-cmf-email-confirmation-text':
+//          $value = variable_get('tenuto_cmf_email_confirmation_text','');
+//          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-email-scheduling-text':
+//          $value = variable_get('tenuto_cmf_email_scheduling_text','');
+//          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-form-deadline':
+//          $value = format_date(variable_get('tenuto_cmf_form_deadline','1577854800'), 'custom', 'm/d/Y h:i A');
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-event':
+//          $value = variable_get('tenuto_cmf_event', 0);
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-event-date':
+//          $value = format_date(variable_get('tenuto_cmf_event_date','1577854800'), 'custom', 'm/d/Y');
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-event-location':
+//          $value = variable_get('tenuto_cmf_event_location','');
+//          $value = $sanitize ? filter_xss($value) : $value;
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-chair-name':
+//          $value = variable_get('tenuto_cmf_chair_name', '');
+//          $value = $sanitize ? filter_xss($value) : $value;
+//          $replacements[$original] = $value;
+//          break;
+//        case 'tenuto-cmf-chair-email-address':
+//          $value = variable_get('tenuto_cmf_chair_email_address', '');
+//          $value = $sanitize ? filter_xss($value) : $value;
+//          $replacements[$original] = $value;
+//          break;        
+//      }
+//    }
+//    return $replacements;
+//  }
+//}
 
 /**
  * Implements hook_token_info().
  *
- * Creates token replacements for the solo site
+ * Creates token replacements for the event settings. This replaces the old way we handled tokens. June 2019
+ * 
  */
 function mlmta_cmf_forms_token_info() {
   $tokens = array();
@@ -332,34 +485,21 @@ function mlmta_cmf_forms_token_info() {
     'name' => t('Tenuto system event linked to the CMF forms'),
     'description' => t('The event ID linked to the CMF forms.'),
   );
-  $tokens['tokens']['site']['tenuto-cmf-email-confirmation-text'] = array(
-    'name' => t('Tenuto system email confirmation text'),
-    'description' => t('Text to be inserted in the email confirmation above the order summary.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-email-scheduling-text'] = array(
-    'name' => t('Tenuto system email scheduling text'),
-    'description' => t('Text to be inserted in the scheduling email above the order summary.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-form-deadline'] = array(
-    'name' => t('Tenuto system form deadline'),
-    'description' => t('The deadline for a form, expressed as mm/dd/yy hh:mm AM.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-event_date'] = array(
-    'name' => t('Tenuto system date'),
-    'description' => t('The date for the event.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-event_location'] = array(
-    'name' => t('Tenuto system event location'),
-    'description' => t('The location of the vent.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-chair-name'] = array(
-    'name' => t('Tenuto system event chair name'),
-    'description' => t('The chair name of the event.'),
-  );
-  $tokens['tokens']['site']['tenuto-cmf-chair-email-address'] = array(
-    'name' => t('Tenuto system event chair email'),
-    'description' => t('The chair email for the event.'),
-  );
+  
+  // Create site tokens for all properties and fields of the linked event. 
+  // @todo Change the tokens whenever they appear 
+  $event_id = variable_get('tenuto_cmf_event');
+  if (!empty($event_id)) {
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $properties = $event_wrapper->getPropertyInfo();
+    foreach ($properties as $name => $property) {
+      $token_string = 'tenuto-cmf-'.str_replace('_', '-', $name);
+      $tokens['tokens']['site'][$token_string] = array(
+        'name' => $property['label'],
+        'description' => $property['description'],
+      );
+    }
+  }
   return $tokens;
 }
 
@@ -371,46 +511,40 @@ function mlmta_cmf_forms_tokens($type, $tokens, array $data = array(), array $op
   $replacements = array();
   if ($type == 'site') {
     $sanitize = !empty($options['sanitize']);
-    // Loop through the available tokens.
+    $event_wrapper = entity_metadata_wrapper('event', variable_get('tenuto_cmf_event'));
     foreach ($tokens as $name => $original) {
-      switch ($name) {
-        case 'tenuto-cmf-email-confirmation-text':
-          $value = variable_get('tenuto_cmf_email_confirmation_text','');
-          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-email-scheduling-text':
-          $value = variable_get('tenuto_cmf_email_scheduling_text','');
-          $value = $sanitize ? filter_xss(token_replace($value)) : token_replace($value);
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-form-deadline':
-          $value = format_date(variable_get('tenuto_cmf_form_deadline','1577854800'), 'custom', 'm/d/Y h:i A');
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-event':
+      if ($name == 'tenuto-cmf-event') {
           $value = variable_get('tenuto_cmf_event', 0);
           $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-event-date':
-          $value = format_date(variable_get('tenuto_cmf_event_date','1577854800'), 'custom', 'm/d/Y');
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-event-location':
-          $value = variable_get('tenuto_cmf_event_location','');
-          $value = $sanitize ? filter_xss($value) : $value;
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-chair-name':
-          $value = variable_get('tenuto_cmf_chair_name', '');
-          $value = $sanitize ? filter_xss($value) : $value;
-          $replacements[$original] = $value;
-          break;
-        case 'tenuto-cmf-chair-email-address':
-          $value = variable_get('tenuto_cmf_chair_email_address', '');
-          $value = $sanitize ? filter_xss($value) : $value;
-          $replacements[$original] = $value;
-          break;        
+      } elseif (strpos($name, 'tenuto-cmf') === 0) {
+        $field_name = str_replace('-', '_', substr($name, strlen('tenuto-cmf') +1 ));
+        $value = $event_wrapper->$field_name->value();
+        $field_info = field_info_field( $field_name);
+        if (is_array($value)) {
+          if ($field_info['type'] == 'datetime') {
+            $field_info = field_info_field( $field_name);
+            $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
+            array_walk($value, function (&$item) use ($field_instance) {
+              if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+                $format = $field_instance['display']['default']['settings']['custom_date_format'];
+              } else {
+                $format = 'm/d/Y';
+              }
+              $item = format_date($item, 'custom', $format);
+            });                                    
+          }
+          $value = implode(', ', $value);
+        } elseif ($field_info['type'] == 'datetime' || $field_name == 'deadline') { 
+          $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
+          if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+            $format = $field_instance['display']['default']['settings']['custom_date_format'];
+          } else {
+            $format = 'm/d/Y h:ia';
+          }
+          $value = format_date($value, 'custom', $format);
+        }
+        $value = token_replace($value); // Replace tokens within the value if any.
+        $replacements[$original] = $value;
       }
     }
     return $replacements;
@@ -655,5 +789,23 @@ function mlmta_cmf_forms_commerce_checkout_pane_info_alter(&$checkout_pane) {
   if ($is_cmf) {
     $checkout_pane['teacher_duties']['enabled'] = TRUE;
   }
+}
+
+/**
+ * Entry point for creating a new CMF registration
+ */
+function mlmta_cmf_registration_forms($pursuit_type, $pursuit = NULL) {
+  $pursuit_type_object = pursuit_type_load($pursuit_type);
+  if (empty($pursuit_type_object)) {
+    drupal_set_message('Pursuit/registration type not found.', 'error');
+    return 'Error';
+  }
+  $event = event_load(variable_get('tenuto_cmf_event'));
+  if (empty($event)) {
+    drupal_set_message('Event not found.', 'error');
+    return 'Error';
+  }
+  $form = drupal_get_form('scheduling_form', $pursuit_type, $event, $pursuit);
+  return $form;
 }
 

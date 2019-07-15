@@ -1,0 +1,8 @@
+name = MLMTA DSF forms
+description = All functions related to forms for DSF registrations
+core = 7.x
+package = MLMTA
+
+dependencies[] = pursuit
+files[] = includes/dsf_solo.form_controller.inc
+files[] = includes/dsf_ensemble.form_controller.inc

@@ -86,7 +86,7 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
   $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
   //$pdf->SetAutoPageBreak(true, 40);
   $pdf->setFontSubsetting(false);
-  $pdf->SetFont('freesans', '', 10);
+  $pdf->SetFont('dejavusans', '', 10);
   foreach ($result as $row_index => $row){
     
     $pdf->AddPage('P','LETTER');   
@@ -115,15 +115,15 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     // Student name
     $pdf->SetFont('freesans', 'B', 14);
     $pdf->SetXY(19, 53, TRUE);
-    $name_and_code = $view->render_field('title', $row_index) . '. (St. ID: '. $student_items[0]['raw']['entity']->student_id .')';
-    $pdf->Write(0, $name_and_code);
+    $name_and_code = $view->render_field('title', $row_index). '. (Reg. ID: '. $view->render_field('pursuit_id', $row_index).')';
+    $pdf->writeHTML($name_and_code);
     
     
-    // Teacher name
+    // Teacher ID
     $pdf->SetFont('freesans', 'B', 10);
     $teacher_items = $teacher_reference_handler->get_items($row);
-    $pdf->SetXY(142, 53, TRUE);
-    $pdf->Write(0, 'Teacher: '.$teacher_items[0]['raw']['entity']->name);
+    $pdf->SetXY(140.5, 53, TRUE);
+    $pdf->Write(0, 'Teacher ID: '.$teacher_items[0]['raw']['entity']->teacher_id);
     $pdf->SetFont('freesans', '', 10);
   
     // Level
@@ -153,9 +153,9 @@ function mlmta_cmf_judgesheets_do_the_pdf($view) {
     $pdf->SetX(120, TRUE);
     
     // TEacher code
-    
-    $pdf->SetX(126, TRUE);
-    $pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_code['und'][0]['value']);
+    //
+    //$pdf->SetX(126, TRUE);
+    //$pdf->Write(0, $teacher_items[0]['raw']['entity']->teacher_code['und'][0]['value']);
     
     // Years with current teacher. See if there is a calculated field for this as well!
     $pdf->SetX(178.8, TRUE);

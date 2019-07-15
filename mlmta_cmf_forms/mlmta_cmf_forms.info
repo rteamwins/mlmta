@@ -4,3 +4,4 @@ core = 7.x
 package = MLMTA
 
 dependencies[] = pursuit
+files[] = includes/cmf_solo.form_controller.inc

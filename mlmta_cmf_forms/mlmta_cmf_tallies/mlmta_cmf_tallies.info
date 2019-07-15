@@ -1,0 +1,5 @@
+name = Entry for scheduling wizard for MLMTA CMF
+description = Form that calls aggregated_report to generate different tallies of MLMTA CMF competition registrations
+package = Scheduling
+core = 7.x
+dependencies[] = pursuit_wizard

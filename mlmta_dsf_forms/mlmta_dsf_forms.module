@@ -1,0 +1,543 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+
+function mlmta_dsf_forms_menu(){
+  $items = array();
+  $items['solo-registration/new'] = array(
+    'title' => t('DSF solo registration form'),
+    'page callback' => 'mlmta_dsf_registration_forms',
+    'page arguments' => array('dsf_solo'), 
+    'access callback' => 'mlmta_base_module_date_access_check',
+    'access arguments' => array(variable_get('tenuto_dsf_event')),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['ensemble-registration/new'] = array(
+    'title' => t('DSF dnsemble registration form'),
+    'page callback' => 'mlmta_dsf_registration_forms',
+    'page arguments' => array('dsf_ensemble'),     
+    'access callback' => 'mlmta_base_module_date_access_check',
+    'access arguments' => array(variable_get('tenuto_dsf_event')),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['admin/solo-form/%ctools_js/%pursuit/view'] = array(
+    'title' => 'DSF solo registration',
+    'page callback' => 'mlmta_dsf_forms_modal_show',
+    'page arguments' => array(2, 3),
+    'access callback' => 'user_is_logged_in',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/config/tenuto-registrations/manage/dsf-settings'] = array(
+    'title' => 'DSF settings',
+    'description' => 'General settings for the event linked to the DSF.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'mlmta_dsf_linked_event_configuration_form',
+    'type' => MENU_NORMAL_ITEM,
+   );
+  
+  $items['admin/config/tenuto-registrations/manage/dsf-settings/event-linking'] = array(
+    'title' => 'Event link',
+    'description' => 'General settings for the DSF forms.',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_dsf_configuration_form'),
+    'type' => MENU_LOCAL_TASK,
+   );
+  
+  $items['admin/config/tenuto-registrations/manage/dsf-settings/linked-event-settings'] = array(
+    'title' => 'DSF settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+   );
+  
+  //$items['admin/config/tenuto-registrations/manage/dsf-settings'] = array(
+  //  'title' => 'DSF general settings',
+  //  'description' => 'General settings for the DSF registration forms.',
+  //  'access arguments' => array('create timeblock entities'),
+  //  'page callback' => 'drupal_get_form',
+  //  'page arguments' => array('mlmta_dsf_forms_configuration_form'),
+  //  'type' => MENU_NORMAL_ITEM,
+  // );
+  
+  $items['dsf-registrations-csv-download'] = array(
+    'title' => 'Download registrations as CSV',
+    'description' => 'Download CSV',
+    'access arguments' => array('create timeblock entities'),
+    'page callback' => 'mlmta_dsf_forms_produce_registration_csv',
+    'type' => MENU_CALLBACK,
+   );
+
+  return $items;
+}
+
+
+/**
+ * Checks that user is able to edit paid pursuit
+ */
+function mlmta_dsf_forms_edit_access_check($pursuit) {
+  if (!user_is_logged_in()) {
+    return FALSE;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if ($pursuit_wrapper->pursuit_order_paid->value() != 1) {
+    return TRUE;
+  }
+  return user_access('edit paid pursuits');
+}
+
+
+///**
+// * A router function for the edit form
+// */
+//function mlmta_dsf_forms_edit_router($pursuit) {
+//  switch ($pursuit->type) {
+//    case 'piano_solo':
+//      $form_id = 'mlmta_piano_dsf_form';
+//      module_load_include('inc', 'mlmta_dsf_forms', 'mlmta_solo');
+//      break;
+//  }
+//  return drupal_get_form($form_id, $pursuit);
+//}
+
+
+/**
+ * Implements hook_pursuit_calculate_trimmed_duration_alter().
+ */
+function mlmta_dsf_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
+  if (in_array($pursuit->type, array('piano_solo', 'vocal_ensemble_performance'))) {
+    $max_duration = 15 * 60; 
+  }
+}
+
+//
+///**
+// * Implements template_preprocess_field()
+// * Transform field_instrument_list multi-field into comma separated  (may need to do the same things with dsf theory and level for multiple players)
+// */
+//function mlmta_dsf_forms_preprocess_field(&$variables, $hook) {
+//  if (in_array($variables['element']['#field_name'], array('field_instrument_list','field_dsf_theory_test', 'field_dsf_theory_test_level'))) {
+//    $items = $variables['items'];
+//    $new_array = array();
+//    foreach($items as $item) {
+//      $new_array[] = $item['#markup'];
+//    }
+//    $comma_separated = implode(', ', $new_array);
+//    $variables['items'] = array(0 => array('#markup'=>$comma_separated));
+//  }
+//}
+
+
+////////////  Display functions //////////////////
+
+
+/**
+ * Creates a render array of the pursuit with all relations
+ */
+function mlmta_dsf_forms_page($pursuit) {
+  list(, , $bundle) = entity_extract_ids('pursuit', $pursuit);
+  $bundle_label = entity_get_info('pursuit')['bundles'][$bundle]['label'];
+  drupal_set_title($bundle_label);
+  return mlmta_dsf_forms_multiple_page(array($pursuit));
+}
+
+/**
+ * Builds and returns a renderable array for multiple pursuit. Built completely with students, teachers, accompanists, families and pieces
+ */
+function mlmta_dsf_forms_multiple_page($pursuits) {
+  $page = entity_view('pursuit', $pursuits, 'complete');
+  return $page;
+}
+
+
+/**
+ * Pursuit modal for admin callback
+ */
+
+/**
+ * Show the content in a modal
+ *
+ * @param $ajax
+ *    Flag for JavaScript enabled browser
+ * @param $pursuit
+ *    The pursuit to view
+ */
+
+function mlmta_dsf_forms_modal_show($ajax, $pursuit){
+    if ($pursuit->type == 'break') {
+      if ($ajax) {
+        ctools_include('modal');
+        return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
+      } else{
+       return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
+      }
+    }
+    $page = mlmta_dsf_forms_page($pursuit);
+    if ($ajax) {
+      //watchdog('checking ajax', 'is here');
+      //ctools_include('ajax');
+      ctools_include('modal');
+      if (empty($page)) {
+        return 'Error';
+      }
+      return ctools_modal_render('',$page);
+    } else {
+    // watchdog('checking ajax', 'is NOT here');
+      return $page; 
+    }
+}
+
+
+
+/**
+ * Implements hook_message_presave().
+ *
+ * Embeds a view in the notification email for solo registrations
+ */
+
+function mlmta_dsf_forms_message_presave($message) {
+  if (!empty($message->mid) || $message->type != 'commerce_order_order_confirmation' ) {
+    return;
+  }
+
+  $message->arguments['!dsf-order-summary'] = array(
+    'callback' => 'mlmta_dsf_forms_message_order_summary',
+    'pass message' => TRUE,
+  );
+}
+
+/**
+ * Message solo callback; Show order summary.
+ *
+ * @param Message $message
+ *   The Message entity.
+ *
+ * @return string
+ *   The output of the View.
+ */
+function mlmta_dsf_forms_message_order_summary(Message $message) {
+  $wrapper = entity_metadata_wrapper('message', $message);
+  $view = views_get_view('shopping_cart_complete_summary'); 
+  $view->set_display('dsf');
+  $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
+  $view->hide_admin_links = TRUE;
+
+  // Disable SQL query rewrite so this renders properly for token.
+  // @link https://www.drupal.org/node/1895418
+  // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
+  $view->display['dsf']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
+
+  return $view->preview();
+}
+
+
+
+/**
+ * Produce complete CSV of DSF registrations
+ */
+function mlmta_dsf_forms_produce_registration_csv() {
+  // Get the records
+  $event_id = variable_get('tenuto_dsf_event', NULL);
+  if(!$event_id) {
+    drupal_set_message('Please be sure to select the DSF event', 'error');
+    return 'Error';
+  }
+  
+  $q = db_select('pursuit');
+  $q->fields('pursuit', array('pursuit_id'));
+  
+  // Filter event
+  $q->join('field_data_field_event_reference', 'event_reference', 'event_reference.entity_id = pursuit_id AND event_reference.field_event_reference_target_id = :event_id AND event_reference.entity_type = :type', array(':event_id' => $event_id, ':type' => 'pursuit'));
+  
+  //// Filter active ones
+  //$q->join('field_data_pursuit_active', 'active', 'active.entity_id = pursuit_id AND active.pursuit_active_value = 1 and active.entity_type = :type');
+  
+  // Join to student reference 
+  $q->join('field_data_pursuit_student_reference', 'pursuit_student', 'pursuit_student.entity_id = pursuit_id AND pursuit_student.entity_type = :type');
+  $q->fields('pursuit_student', array('pursuit_student_reference_target_id'));
+  
+  // Join to student last name
+  $q->join('field_data_student_last_name', 'last_name','last_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('last_name', array('student_last_name_value'));
+  
+  // Join to student first name
+  $q->join('field_data_student_first_name', 'first_name','first_name.entity_id = pursuit_student.pursuit_student_reference_target_id');
+  $q->fields('first_name', array('student_first_name_value'));
+  
+  // Sort by student last name
+  $q->orderBy('last_name.student_last_name_value');
+  
+  // Sort by student first name
+  $q->orderBy('first_name.student_first_name_value');
+  
+  $result = $q->execute()->fetchAllAssoc('pursuit_id');
+  
+  if (empty($result)) {
+    return 'No registrations found.';    
+  }
+  $pursuit_ids = array_keys($result);
+  $pursuits = pursuit_load_multiple($pursuit_ids);
+  
+  // Build the CSV structure
+  $structure = array(
+    'pursuit_id' => 'Registration ID',
+    'pursuit_order_reference' => array(
+      'order_id' => 'Order ID',
+    ),
+    'pursuit_order_paid' => 'Paid',
+    'pursuit_active' => 'Active',
+    'type' => 'Type',
+    'label' => 'Registrant(s)',
+    'pursuit_student_reference' => array(
+      'student_first_name' => 'Student first name',
+      'student_last_name' => 'Student last name',
+      'student_calculated_age' => 'Student calculated age',
+      'student_email' => 'Student email',
+      'field_student_phone' => 'Student phone',
+      'field_student_family' => array(
+        'label' => 'Student family',
+      ),
+     ),
+    //'field_instrument_list' => 'Instrument',
+    'field_theory_test_type' => 'Theory test type',
+    'field_theory_test_level' => 'Theory level',
+    'field_piano_solo_level'=>'Level',
+    'field_accompanist' => array(
+      'student_first_name' => 'Accompanist first name',
+      'student_last_name' => 'Accompanist last name',
+    ),
+    'pursuit_piece_reference' => array(
+      'label' => 'Piece',
+      'piece_composer' => array('name' => 'Composer'),
+      'piece_duration' => 'Duration',
+    ),
+    'pursuit_duration' => 'Total duration',
+    'pursuit_trimmed_duration' => 'Trimmed duration',
+    'pursuit_contestant_number' => 'Contestant # within time block',
+    'pursuit_preferred_time' => 'Preferred time',
+    'pursuit_teacher_reference' => array(
+      'teacher_first_name' => 'Teacher first name',
+      'teacher_last_name' => 'Teacher last name',
+      'teacher_email' => 'Teacher email',
+      'teacher_phone' => 'Teacher phone',
+      'teacher_code' => 'Teacher code',
+    ),
+    'field_event_reference' => array(
+      'label' => 'Event'
+    ),
+    'pursuit_timeblock_reference' => array(
+      'label' => 'Time block',
+      'timeblock_room' => array(
+        'label' => 'Room'
+      ),
+    ),
+    'pursuit_date' => 'Performance date'
+  );
+  
+  $cardinality_index = array(
+    'pursuit_piece_reference' => 2,
+    'pursuit_student_reference' => 4,
+     
+  );
+  
+  $header_array = scheduling_form_build_csv_header($structure, $cardinality_index);
+
+  //instead of writing down to a file we write to the output stream
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-dsf-registrations.csv"');
+  $fh = fopen('php://output', 'w');
+  fwrite($fh, "\xEF\xBB\xBF");
+  fputcsv($fh, $header_array);
+  
+  foreach ($pursuits as $pursuit) {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    $row = scheduling_form_build_csv_row($pursuit_wrapper, $structure, $cardinality_index);
+    fputcsv($fh, $row);
+  }
+  drupal_exit();
+}
+
+/**
+ * Entry point for creating a new CMF registration
+ */
+function mlmta_dsf_registration_forms($pursuit_type, $pursuit = NULL) {
+  $pursuit_type_object = pursuit_type_load($pursuit_type);
+  if (empty($pursuit_type_object)) {
+    drupal_set_message('Pursuit/registration type not found.', 'error');
+    return 'Error';
+  }
+  $event = event_load(variable_get('tenuto_dsf_event'));
+  if (empty($event)) {
+    drupal_set_message('Event not found.', 'error');
+    return 'Error';
+  }
+  $form = drupal_get_form('scheduling_form', $pursuit_type, $event, $pursuit);
+  return $form;
+}
+
+/**
+ * Configuration form for this event
+ */
+function mlmta_dsf_configuration_form($form, &$form_state) {
+  $events = event_load_all();
+  if (!empty($events)) {
+
+    $options = array();
+    foreach ($events as $id => $event) {
+      $options[$id] = $events[$id]->title; 
+    }
+    
+    $form['tenuto_dsf_event'] = array(
+      '#type' => 'select',
+      '#title' => 'Event',
+      '#description' => 'Choose an event from the list of defined events for this site, which will be linked to the DSF forms. This most likely will NOT need to be changed once it is set. Do NOT change this if you are not sure what it means',
+      '#required' => TRUE,
+      '#options' => $options,
+      '#default_value' => variable_get('tenuto_dsf_event',NULL),
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => 'Submit',
+      '#weight'=> 99,
+    );
+  } else {
+    $form['error'] = array(
+      '#markup' => 'ERROR: There are no events defined in the system!',
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Submit handler
+ */
+function mlmta_dsf_configuration_form_submit($form, &$form_state) {
+  variable_set('tenuto_dsf_event', $form_state['values']['tenuto_dsf_event']);
+  drupal_set_message('The setting has been saved.');
+}
+
+/**
+ * Configuration for this event
+ */
+function mlmta_dsf_linked_event_configuration_form() {
+  $event = event_load(variable_get('tenuto_dsf_event'));
+  if (empty($event)) {
+    drupal_set_message('There is no linked event.', 'error');
+    return 'Error';
+  }
+  module_load_include('inc', 'event', 'event.admin');
+  $form = drupal_get_form('event_form', $event);
+  // unset things that managers don't need to see. Horrible hack, oh well
+  global $user;
+  if (!in_array('administrator', array_values($user->roles))) {
+    unset($form['menu_name']);
+    unset($form['views_path']);
+  }
+  return $form;
+}
+
+
+/**
+ * Implements hook_token_info().
+ *
+ * Creates token replacements for the event settings. This replaces the old way we handled tokens. June 2019
+ * 
+ */
+function mlmta_dsf_forms_token_info() {
+  $tokens = array();
+  $tokens['tokens']['site']['tenuto-dsf-event'] = array(
+    'name' => t('Tenuto system event linked to the DSF forms'),
+    'description' => t('The event ID linked to the DSF forms.'),
+  );
+  
+  // Create site tokens for all properties and fields of the linked event. 
+  // @todo Change the tokens whenever they appear 
+  $event_id = variable_get('tenuto_dsf_event');
+  if (!empty($event_id)) {
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $properties = $event_wrapper->getPropertyInfo();
+    foreach ($properties as $name => $property) {
+      $token_string = 'tenuto-dsf-'.str_replace('_', '-', $name);
+      $tokens['tokens']['site'][$token_string] = array(
+        'name' => $property['label'],
+        'description' => $property['description'],
+      );
+    }
+  }
+  return $tokens;
+}
+
+/**
+ * Implements hook_tokens()
+ * Provides value for token
+ */
+function mlmta_dsf_forms_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'site') {
+    $sanitize = !empty($options['sanitize']);
+    $event_wrapper = entity_metadata_wrapper('event', variable_get('tenuto_dsf_event'));
+    foreach ($tokens as $name => $original) {
+      if ($name == 'tenuto-dsf-event') {
+          $value = variable_get('tenuto_dsf_event', 0);
+          $replacements[$original] = $value;
+      } elseif (strpos($name, 'tenuto-dsf') === 0) {
+        $field_name = str_replace('-', '_', substr($name, strlen('tenuto-dsf') +1 ));
+        $value = $event_wrapper->$field_name->value();
+        $field_info = field_info_field( $field_name);
+        if (is_array($value)) {
+          if ($field_info['type'] == 'datetime') {
+            $field_info = field_info_field( $field_name);
+            $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
+            array_walk($value, function (&$item) use ($field_instance) {
+              if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+                $format = $field_instance['display']['default']['settings']['custom_date_format'];
+              } else {
+                $format = 'm/d/Y';
+              }
+              $item = format_date($item, 'custom', $format);
+            });                                    
+          }
+          $value = implode(', ', $value);
+        } elseif ($field_info['type'] == 'datetime' || $field_name == 'deadline') { 
+          $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
+          if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+            $format = $field_instance['display']['default']['settings']['custom_date_format'];
+          } else {
+            $format = 'm/d/Y h:ia';
+          }
+          $value = format_date($value, 'custom', $format);
+        }
+        $value = token_replace($value); // Replace tokens within the value if any.
+        $replacements[$original] = $value;
+      }
+    }
+    return $replacements;
+  }
+}
+
+/**
+ * Implements hook_pursuit_presave().
+ * Automatically save a composite instrument field in the pursuit for ensemble registrations.
+ * This is done so that the count tally works correclty for instruments for multiple students
+ */
+function mlmta_dsf_forms_pursuit_presave($pursuit) {
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  if (isset($pursuit_wrapper->field_instrument_composite)) {
+    $instruments = $pursuit_wrapper->field_instrument_options->value(); // must have multiple cardinaliry
+    if (!is_array($instruments)) {
+      $pursuit_wrapper->field_instrument_composite = $instrument;
+      return;
+    }
+    $order = array_flip(array('Voice','Violin','Viola','Cello','Bass','Guitar','Flute','Oboe','English horn','Clarinet','Saxophone','Bassoon','French horn','Trumpet','Trombone','Euphonium','Tuba','Percussion','Marimba','Vibraphone','Harp','Piano'));
+    usort($instruments, function ($a, $b) use ($order) {
+      return $order[$a] <=> $order[$b];
+    });
+    $pursuit_wrapper->field_instrument_composite = implode(', ', $instruments);
+  }
+}

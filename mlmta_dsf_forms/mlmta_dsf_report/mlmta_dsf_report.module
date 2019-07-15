@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * @file
+ * Functions to generate the general CSV report for MLMTA DSF festival to send to the state level 
+ */
+/**
+ * Implements hook_menu().
+ */
+function mlmta_dsf_report_menu() {
+  $items['dsf-csv-report'] = array(
+    'page callback' => 'mlmta_dsf_report_page',
+    'access arguments' => array('edit any pursuit entities'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Generates an array from a view and outputs it as a CSV file
+ */
+function mlmta_dsf_report_page() {
+  $view = views_get_view('pursuits_for_dsf_report');
+  $arguments = variable_get('tenuto_solo_event', NULL);
+  $view->set_arguments(array($arguments));
+  $view->execute();
+  $result = $view->result;
+  $number_of_participants = count($result);
+  $fee = $number_of_participants * 2;
+  
+  $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
+  $theory_level_handler = $view->field['field_dsf_theory_test_level'];
+  
+  //add necessary headers for browsers
+  drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-dsf-report.csv"');
+  
+  //instead of writing down to a file we write to the output stream
+  $fh = fopen('php://output', 'w');
+  
+  $header_stuff = array(
+    array(
+      'DSPF REPORT', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Local association', 'Main Line Music Teachers Association', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Local chair', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Address', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Phone', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Email', '', '' ,'' ,'', '', ''
+    ),
+    array(
+      'Total participants', $number_of_participants, '' ,'' ,'', '', ''
+    ),
+    array(
+      'Submitted fee', $fee, '' ,'' ,'', '', ''
+    ),
+    array(
+      '', '', '' ,'' ,'', '', ''
+    ),
+    
+  );
+  
+  foreach ($header_stuff as $row) {
+    fputcsv($fh, $row);
+  }
+  
+  
+  $csv_header = array(
+    'Student last name',
+    'Student first name',
+    'Overall rating',
+    'Theory level',
+    'Theory score',
+    'Solo-Ensemble',
+    'Teacher'
+  );
+  
+  fputcsv($fh, $csv_header);
+  foreach ($result as $row_index => $row) {
+    $csv_row = array();
+    $csv_row[] = $view->render_field('student_last_name', $row_index);
+    $csv_row[] = $view->render_field('student_first_name', $row_index);
+    $csv_row[] = ''; // Overall rating
+    
+    // Theory level that corresponds to this student delta
+    $student_delta = $view->render_field('delta', $row_index);
+    $theory_level_items = $theory_level_handler->get_items($row);
+    $csv_row[] = $theory_level_items[$student_delta]['raw']['value'];
+    
+    $csv_row[] = ''; // Theory score. Empty, to be filled by user after download
+    $type = $view->render_field('type', $row_index);
+    $csv_row[] = scheduling_bundle_label('pursuit', $type);
+    
+    // Get the teacher that corresponds to this student's delta
+    
+    $teacher_items = $teacher_reference_handler->get_items($row);
+    $teacher = $teacher_items[$student_delta]['raw']['entity'];
+    $teacher_wrapper = entity_metadata_wrapper('teacher', $teacher);
+    $teacher_last_name = $teacher_wrapper->teacher_last_name->value();
+    $teacher_first_name = $teacher_wrapper->teacher_first_name->value();
+    $csv_row[] = $teacher_last_name.', '. $teacher_first_name;
+    fputcsv($fh, $csv_row);
+  }
+  
+  drupal_exit();
+}
