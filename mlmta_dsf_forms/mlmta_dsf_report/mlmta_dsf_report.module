@@ -21,23 +21,22 @@ function mlmta_dsf_report_menu() {
  */
 function mlmta_dsf_report_page() {
   $view = views_get_view('pursuits_for_dsf_report');
-  $arguments = variable_get('tenuto_solo_event', NULL);
-  $view->set_arguments(array($arguments));
+  //$arguments = variable_get('tenuto_dsf_event', NULL);
+  //$view->set_arguments(array($arguments));
   $view->execute();
   $result = $view->result;
   $number_of_participants = count($result);
   $fee = $number_of_participants * 2;
   
   $teacher_reference_handler = $view->field['pursuit_teacher_reference'];
-  $theory_level_handler = $view->field['field_dsf_theory_test_level'];
+  $theory_level_handler = $view->field['field_theory_test_level'];
   
   //add necessary headers for browsers
   drupal_add_http_header('Content-Type', 'text/csv; utf-8');
   drupal_add_http_header('Content-Disposition', 'attachment; filename = "mlmta-dsf-report.csv"');
-  
+  //
   //instead of writing down to a file we write to the output stream
   $fh = fopen('php://output', 'w');
-  
   $header_stuff = array(
     array(
       'DSPF REPORT', '', '' ,'' ,'', '', ''
@@ -90,9 +89,9 @@ function mlmta_dsf_report_page() {
     $csv_row[] = $view->render_field('student_last_name', $row_index);
     $csv_row[] = $view->render_field('student_first_name', $row_index);
     $csv_row[] = ''; // Overall rating
-    
     // Theory level that corresponds to this student delta
     $student_delta = $view->render_field('delta', $row_index);
+    
     $theory_level_items = $theory_level_handler->get_items($row);
     $csv_row[] = $theory_level_items[$student_delta]['raw']['value'];
     

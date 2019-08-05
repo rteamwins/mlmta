@@ -541,7 +541,7 @@ function mlmta_base_form_alter(&$form, $form_state, $form_id) {
         // disable delete button
         $form['actions']['delete']['#disabled'] = TRUE;
         $form['cant-delete'] = array(
-          '#markup' => t('This student is currently registered for activities in this system or is in your shopping cart, and therefore can\'t be deleted. If you wish to delete it, please delete the registration of contact the administrator'),
+          '#markup' => t('This student is currently registered for activities in this system or is in your shopping cart, and therefore can\'t be deleted. If you wish to delete it, please delete the registration or contact the administrator'),
           '#prefix' => '<p style="color: red;">',
           '#suffix' => '</p>',
           '#weight' => 90,
