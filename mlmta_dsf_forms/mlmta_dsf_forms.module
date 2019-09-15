@@ -324,7 +324,7 @@ function mlmta_dsf_forms_produce_registration_csv() {
       'teacher_last_name' => 'Teacher last name',
       'teacher_email' => 'Teacher email',
       'teacher_phone' => 'Teacher phone',
-      'teacher_code' => 'Teacher code',
+      'teacher_id' => 'Teacher ID',
     ),
     'field_event_reference' => array(
       'label' => 'Event'

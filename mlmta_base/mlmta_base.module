@@ -264,7 +264,7 @@ function _mlmta_teacher_build_list($teacher_type) {
     $teacher_ids = array_keys($result['teacher']);
     $teachers = teacher_load_multiple($teacher_ids);
     foreach ($teachers as $teacher) {
-      $teacher_array[$teacher->teacher_id] = $teacher->name . ' (code '.$teacher->teacher_code['und'][0]['value'] .')';
+      $teacher_array[$teacher->teacher_id] = $teacher->name . ' (ID '.$teacher->teacher_id .')';
     }
   }
   return $teacher_array;
@@ -852,18 +852,18 @@ function _mlmta_base_helper_preprocess_views_data_export_csv (&$vars, $content) 
  * Implements hook_form_FORM_ID_alter
  * Adds validation for teacher code of a certain length
  */
-function mlmta_base_form_user_register_form_alter(&$form, &$form_state) {
-  $form['#validate'][] = 'mlmta_base_form_family_form_validate';
-}
-
-/**
- * Adds validation for mtna code
- */
-function mlmta_base_form_family_form_validate($form, $form_state) {
-  if(strlen($form_state['values']['field_teacher_code']['und'][0]['value'])<4 or strlen($form_state['values']['field_teacher_code']['und'][0]['value']) > 7) {
-    form_set_error('field_teacher_code][und][0][value', t('Teacher code must be your MTNA ID and be between 4 and 7 digits long'));
-  }
-}
+//function mlmta_base_form_user_register_form_alter(&$form, &$form_state) {
+//  $form['#validate'][] = 'mlmta_base_form_family_form_validate';
+//}
+//
+///**
+// * Adds validation for mtna code
+// */
+//function mlmta_base_form_family_form_validate($form, $form_state) {
+//  //if(strlen($form_state['values']['field_teacher_code']['und'][0]['value'])<4 or strlen($form_state['values']['field_teacher_code']['und'][0]['value']) > 7) {
+//  //  form_set_error('field_teacher_code][und][0][value', t('Teacher code must be your MTNA ID and be between 4 and 7 digits long'));
+//  //}
+//}
 
 /**
  * Builds a flat array for multilevel pursuit for CSV export

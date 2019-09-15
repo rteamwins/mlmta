@@ -138,15 +138,15 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
       $student_codes[] = $student_item['raw']['target_id'];
     }
     $teacher_items = $teacher_reference_handler->get_items($row);
-    $teacher_codes = array();
+    $teacher_ids = array();
     foreach ($teacher_items as $index => $teacher_item) {
-      $teacher_codes[] = $teacher_item['raw']['target_id'];
+      $teacher_ids[] = $teacher_item['raw']['target_id'];
     }
     $pdf->SetFont('freesans', '', 10);
     $pdf->SetXY($student_code_x, $student_code_y, TRUE);
     $pdf->Write(0, 'Registration ID: '. $view->render_field('pursuit_id', $row_index));
     $pdf->SetX($teacher_code_x, TRUE);
-    $pdf->Write(0,'Teacher ID(s): '. implode(', ', $teacher_codes));
+    $pdf->Write(0,'Teacher ID(s): '. implode(', ', $teacher_ids));
     
     // Pieces
     $piece_x = 13;

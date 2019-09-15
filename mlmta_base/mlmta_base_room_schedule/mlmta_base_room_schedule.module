@@ -125,9 +125,9 @@ function mlmta_base_room_schedule_output ($tid, $pdf, $variables = array()) {
         $teachers = array();
         foreach ($w->pursuit_teacher_reference->getIterator() as $teacher_wrapper) {
           if (isset($variables['anonymize']) && $variables['anonymize'] == 1) {
-            $teachers[] = $teacher_wrapper->teacher_code->value();
+            $teachers[] = $teacher_wrapper->getIdentifier();
           } else {
-            $teachers[] = $teacher_wrapper->label() . ' (' .$teacher_wrapper->teacher_code->value().')';
+            $teachers[] = $teacher_wrapper->label() . ' (' .$teacher_wrapper->getIdentifier().')';
           }           
         }
         $teacher = implode(', ', $teachers);
