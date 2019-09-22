@@ -109,7 +109,7 @@ function mlmta_dsf_forms_edit_access_check($pursuit) {
  * Implements hook_pursuit_calculate_trimmed_duration_alter().
  */
 function mlmta_dsf_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration, $pursuit) {
-  if (in_array($pursuit->type, array('piano_solo', 'vocal_ensemble_performance'))) {
+  if (in_array($pursuit->type, array('dsf_solo', 'dsf_ensemble'))) {
     $max_duration = 15 * 60; 
   }
 }
