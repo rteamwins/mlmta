@@ -1010,3 +1010,19 @@ function mlmta_base_module_deadline_check($event) {
     return FALSE;
   }
 }
+
+/**
+ * Implements template_preprocess_views_view_table(). MOVED from student.module as this may actually be different in different systems
+ * Adds a css class to rows of a students_1 views table if the birthday or starting date are not provided
+ */
+function mlmta_base_preprocess_views_view_table(&$vars) {
+  if ($vars['view']->name == 'students_1') {
+    $result = $vars['view']->result;
+    foreach ($result as $index => $row) {
+      $type = isset($row->student_type) ? $row->student_type : 'basic_student'; // Avoid checking for bday for accompanist type
+      if ($type == 'basic_student' && isset($row->field_student_birthday) && empty($row->field_student_birthday[0]['raw']['value'])) {
+        $vars['row_classes'][$index][] = 'birthday-missing';
+      }
+    }
+  }
+}
