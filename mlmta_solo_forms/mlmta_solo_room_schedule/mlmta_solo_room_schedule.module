@@ -101,7 +101,7 @@ function mlmta_solo_room_schedule_output ($tid, $pdf, $variables = array()) {
         array('data' => 'Number', 'align' => 'center', 'width' => 45),
         array('data' => 'Start time', 'align' => 'center', 'width' => 60 ),
         array('data' => 'Performer', 'align' => 'center'),
-        array('data' => 'Pieces', 'align' => 'center'),
+        array('data' => 'Pieces', 'align' => 'center', 'width' => 120),
         array('data'=>'Teacher', 'align' => 'center'),
         array('data'=>'Level', 'align' => 'center'),
         array('data'=>'Length', 'align' => 'center', 'width' => 60),
@@ -139,7 +139,7 @@ function mlmta_solo_room_schedule_output ($tid, $pdf, $variables = array()) {
       $row[] = $is_break ? '&nbsp;' : array('data' => $w->pursuit_contestant_number->value(), 'align' => 'center', 'width'=>45);
       $row[] = array('data' => empty($w->pursuit_date->value->value()) ? '' : date('g:i A' ,$w->pursuit_date->value->value()), 'align' => 'center', 'width'=>60);
       $row[] = $is_break ? array('data' => 'BREAK','align' => 'center') : array('data'=>$w->title->value(), 'align' => 'center');
-      $row[] = $pieces;
+      $row[] = array('data'=>$pieces, 'width' => 120);
       $row[] = $is_break ? '&nbsp;' : array('data' => $teacher, 'align' => 'center');
       $row[] = $is_break ? '&nbsp;' : array('data' => $w->field_piano_solo_level->value(), 'align' => 'center');
       $row[] = array('data' => $duration . '<br/>('.$trimmed. ')', 'align' => 'center', 'width'=>60);
