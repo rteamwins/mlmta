@@ -101,15 +101,15 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
     $pdf->SetXY(45, 5, TRUE);
     $pdf->Write(0, 'Room: ' . $view->render_field('name_1', $row_index));
     
-    // Date and time
-    $date_items = $start_time_handler->get_items($row);
-    $pdf->SetX(130, TRUE);
-    $pdf->Write(0, 'Time: '. format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'D, m/d/Y - h:ia'));
-
     // Judge
     $pdf->SetXY(45, 11, TRUE);
     $pdf->Write(0, 'Judge: ' . $view->render_field('title_1', $row_index). ' (Judge ID: '. $view->render_field('timeblock_personnel_reference', $row_index). ')');
   
+      // Date and time
+    $date_items = $start_time_handler->get_items($row);
+    $pdf->SetX(130, TRUE);    
+    $pdf->Write(0, 'Time: '. format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'D, m/d/Y - h:ia'));
+
     // Accompanist
     $pdf->SetXY(35, 82.5, TRUE);
     $pdf->Write(0, $view->render_field('field_accompanist', $row_index));
@@ -145,7 +145,7 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
     $pdf->SetFont('freesans', '', 10);
     $pdf->SetXY($student_code_x, $student_code_y, TRUE);
     $pdf->Write(0, 'Registration ID: '. $view->render_field('pursuit_id', $row_index));
-    $pdf->SetX($teacher_code_x, TRUE);
+    $pdf->SetXY(130, 5, TRUE);
     $pdf->Write(0,'Teacher ID(s): '. implode(', ', $teacher_ids));
     
     // Pieces
