@@ -25,7 +25,7 @@ function mlmta_base_room_schedule_menu() {
  * @param array $variables An array of additional parameters
  */
 function mlmta_base_room_schedule_entry($tid, $variables = array()) {
-  dpm($variables);
+  //dpm($variables);
   $pdf = new MYPDF('L','mm', 'LETTER');
   $pdf->event = 'MLMTA ' . $variables['event_name'];
   $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);

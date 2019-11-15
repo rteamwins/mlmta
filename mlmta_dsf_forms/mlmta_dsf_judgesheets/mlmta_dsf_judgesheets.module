@@ -42,7 +42,7 @@ function mlmta_dsf_judgesheets_menu() {
 }
 
 /*
- * Entry point for printing certificates
+ * Entry point for printing judgesheets
  */
 function mlmta_dsf_judgesheets_entry(){
   $view = views_get_view('pursuits_for_judges');
