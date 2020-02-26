@@ -593,29 +593,6 @@ function mlmta_cmf_forms_message_order_summary(Message $message) {
 }
 
 
-///**
-// * Creates a map of instruments
-// */
-//function mlmta_cmf_forms_instruments() {
-//  return drupal_map_assoc(array(
-//    'Piano', 'Voice', 'Violin', 'Viola', 'Cello', 'Bass', 'Guitar', 'Harp', 'Flute', 'Oboe', 'Clarinet', 'Bassoon', 'French horn', 'English horn', 'Saxophone' ,'Trumpet', 'Trombone', 'Euphonium', 'Tuba', 'Percussion', 'Marimba', 'Vibraphone',  
-//  ));
-//}
-
-///**
-// * Outputs a html file with .doc extension. Outputs the student recital program
-// */
-//function mlmta_cmf_output_program() {
-//  $content = views_embed_view('mlmta_cmf_program','page');
-//  //add necessary headers for browsers
-//  $filename = 'RecitalProgram-'.date('Ymd-Hi').'.doc';
-//  drupal_add_http_header('Content-Type', 'application/vnd.ms-word; utf-8'); 
-////  drupal_add_http_header("Cache-Control: must-revalidate, post-check=0, pre-check=0"); 
-//  drupal_add_http_header('Content-Disposition',  'attachment;filename= "'.$filename.'"');
-//  print $content;
-//  drupal_exit();
-//}
-
 
 /**
  * Implements hook_form_FORM_ID_alter().
@@ -809,3 +786,26 @@ function mlmta_cmf_registration_forms($pursuit_type, $pursuit = NULL) {
   return $form;
 }
 
+/**
+ * Implements hook_timeblock_buffer_alter().
+ */
+function mlmta_cmf_forms_timeblock_buffer_alter(&$buffer, $timeblock, $pursuit) {
+  if ($pursuit->type != 'cmf_solo') {
+    return;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+  switch ($pursuit_wrapper->field_piano_solo_level->value()) {
+    case 'Elementary':
+      $buffer = 240;
+      break;
+    case 'Lower intermediate':
+      $buffer = 210;
+      break;
+    case 'Upper intermediate':
+    case 'Advanced':
+      $buffer = 180;
+      break;
+    default:
+      $buffer = 210;
+  }
+}
