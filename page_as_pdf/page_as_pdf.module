@@ -27,7 +27,7 @@ function page_as_pdf_entry() {
 
   $out = page_as_pdf_get_page($path);
   header('Content-Type: application/pdf');
-  header('Content-Disposition: attachment;filename="Registered-students"');
+  header('Content-Disposition: attachment;filename="Registered-students.pdf"');
   
   echo $out;
   flush();
