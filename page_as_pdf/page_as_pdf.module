@@ -19,7 +19,8 @@ function page_as_pdf_entry() {
   $args = func_get_args();
   //$query = $_GET;
   $path = implode('/', $args);
-  $path = drupal_get_normal_path($path); 
+  $path = drupal_get_normal_path($path);
+  $file_name = implode('-', $args);
 
   if (!drupal_valid_path($path)) {
     return MENU_NOT_FOUND;
@@ -27,7 +28,7 @@ function page_as_pdf_entry() {
 
   $out = page_as_pdf_get_page($path);
   header('Content-Type: application/pdf');
-  header('Content-Disposition: attachment;filename="Registered-students.pdf"');
+  header('Content-Disposition: attachment;filename="'. $file_name .'.pdf"');
   
   echo $out;
   flush();
