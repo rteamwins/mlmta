@@ -68,6 +68,13 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
     '#required' => TRUE,
   );
   
+  $form['integrity_pledge'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Integrity Pledge',
+    '#description' => "By typing my name above, I represent that I have completed the enclosed theory test (if applicable) without assistance and without looking at notes or reference materials. I also represent that I am the performer in the videos and that the videos have not been edited in any way. I understand that any violation of these terms will result in my disqualification from the festival.",
+    '#required' => TRUE,
+  );
+  
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',

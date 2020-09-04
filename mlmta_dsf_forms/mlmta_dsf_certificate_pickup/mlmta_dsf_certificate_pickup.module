@@ -14,7 +14,7 @@ function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info() {
     'file' => 'mlmta_dsf_certificate_pickup.checkout_pane.inc',
     'page' => 'checkout',
     'weight' => -9,
-    'enabled' => FALSE,
+    //'enabled' => FALSE,
   );
 
   return $checkout_panes;
@@ -22,7 +22,7 @@ function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info() {
 
 /**
  * Implements hook_commerce_checkout_pane_info_alter()
- * Checks if the current order contains CMF products and if so shows the pane
+ * Checks if the current order contains dsf products and if so shows the pane
  */
 function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info_alter(&$checkout_pane) {
   global $user;
@@ -38,7 +38,6 @@ function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info_alter(&$checko
       break;
     } 
   } 
-  if ($is_dsf) {
-    $checkout_pane['pickup_options']['enabled'] = TRUE;
-  }
+
+  $checkout_pane['pickup_options']['enabled'] = $is_dsf;
 }
