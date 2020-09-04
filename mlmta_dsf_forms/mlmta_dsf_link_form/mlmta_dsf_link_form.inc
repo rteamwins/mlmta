@@ -118,6 +118,8 @@ function mlmta_dsf_link_form_form_submit($form, &$form_state) {
   $pursuit_wrapper->field_theory_test_link = $values['theory_link'];
   $pursuit_wrapper->save();
   
+  drupal_set_message(t('Your links have been submitted. You will receive a confirmation email. Check your spam folder if you don\'t see it.'));
+  
   $event_id = variable_get('tenuto_dsf_event', '');
   if (!empty($event_id)) {
     $event_wrapper = entity_metadata_wrapper('event', $event_id);
@@ -157,9 +159,9 @@ Theory test: {$values['theory_link']}
  */
 function mlmta_dsf_link_mail($key, &$message, $params) {
   if ($key == 'send_links') {
-    $active_event_id = event_switch_get_active_event();
-    $active_event_wrapper = entity_metadata_wrapper('event', $active_event_id);
-    $manager_email = $active_event_wrapper->field_chair_email_address->value();
+    $event_id = variable_get('tenuto_dsf_event', '');
+    $event_wrapper = entity_metadata_wrapper('event', $event_id);
+    $manager_email = $event_wrapper->field_chair_email_address->value();
     $message['subject'] = $params['subject'];
     $message['body'] = $params['body'];
     $copied_to = "acremaschi@tenutoweb.com,flohidajat@gmail.com";
