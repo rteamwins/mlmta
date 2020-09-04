@@ -13,7 +13,7 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
   //);
   
   $form['link_intro_text'] = array(
-    '#markup' => "<strong>Directions:</strong><ol><li>Upload your 2 videos, 2 musical scores (PDF), and theory test PDF to a cloud service like Google Drive, Dropbox or others (videos may instead be uploaded to Youtube or Vimeo if you wish)</li><li>Make sure to edit the sharing settings for ALL those files and videos so that \"anyone with the link can view\"</li><li>CAREFULLY copy the URL/links for each of those files and paste below</li></ol><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
+    '#markup' => "<strong>Directions:</strong><ol><li>Upload your 2 videos, 2 musical scores (PDF), and theory test PDF to a cloud service like Google Drive, Dropbox or others (videos may instead be uploaded to Youtube or Vimeo if you wish)</li><li>Make sure to edit the sharing settings for ALL those files and videos so that \"anyone with the link can view\"</li><li>CAREFULLY select and copy the URL/links for each of those files, and paste below in the appropriate box</li></ol><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
   );
     
     
@@ -78,14 +78,14 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
 function mlmta_dsf_link_form_form_validate(&$form, &$form_state) {
   $values = $form_state['values'];
   $pursuit_text = $values['pursuit_text'];
-  dpm($pursuit_text);
+  //dpm($pursuit_text);
   $result = preg_match('/\[([0-9]+)\]$/', $pursuit_text, $matches);
-  dpm($result);
+  //dpm($result);
   if ($result > 0) {
     // If $result is nonzero, we found a match and can use it as the index into
     // $matches.
     $pursuit_id = $matches[$result];
-    dpm($pursuit_id);
+    //dpm($pursuit_id);
     $pursuit = pursuit_load($pursuit_id);
     if (empty($pursuit)) {
       form_error($form['pursuit_text'], t('The registration ID is not valid'));
@@ -93,7 +93,7 @@ function mlmta_dsf_link_form_form_validate(&$form, &$form_state) {
   }
   else {
     $pursuit = pursuit_load($pursuit_text);
-    dpm($pursuit);
+    //dpm($pursuit);
     if (empty($pursuit)) {
       form_error($form['pursuit_text'], t('The registration ID is not valid'));
 
@@ -106,10 +106,10 @@ function mlmta_dsf_link_form_form_validate(&$form, &$form_state) {
 }
 
 function mlmta_dsf_link_form_form_submit($form, &$form_state) {
-  dpm($form_state['storage']);
+  //dpm($form_state['storage']);
   $values = $form_state['values'];
   $pursuit = $form_state['storage']['pursuit'];
-  dpm($pursuit);
+  //dpm($pursuit);
   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
   $pursuit_wrapper->field_video_1_link = $values['video_link_1'];
   $pursuit_wrapper->field_video_2_link = $values['video_link_2'];
