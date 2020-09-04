@@ -1,0 +1,6 @@
+name = MLMTA DSF link form
+description = Allows anonymous users to submit DSF material links
+core = 7.x
+package = MLMTA
+
+dependencies[] = pursuit

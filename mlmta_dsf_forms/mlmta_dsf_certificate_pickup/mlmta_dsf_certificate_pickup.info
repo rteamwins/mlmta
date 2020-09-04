@@ -1,0 +1,4 @@
+name = MLMTA DSF certificate pickup options
+description = Adds a checkout pane to allow teachers to indicate preference for DSF certificate and medal pickup
+core = 7.x
+package = MLMTA

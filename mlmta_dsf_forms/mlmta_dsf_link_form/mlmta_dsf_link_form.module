@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function mlmta_dsf_link_form_menu() {
+  $items = array();
+  $items['dsf/links'] = array(
+    'title' => 'DSF links form',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mlmta_dsf_link_form_form'),
+    'access callback' => TRUE,
+    'file' => 'mlmta_dsf_link_form.inc',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['dsf_links_autocomplete_callback'] = array (
+    'page callback' => 'mlmta_dsf_link_autocomplete_callback',
+    'access callback' => TRUE,
+    'file' => 'mlmta_dsf_link_form.inc',
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}

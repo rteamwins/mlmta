@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * Implements hook_commerce_checkout_pane_info()
+ * Adds a new pane to collect time choice to help during CMF
+ * 
+ */
+function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info() {
+  $checkout_panes = array();
+
+  $checkout_panes['pickup_options'] = array(
+    'title' => t('Receipt of certificates and medals'),
+    'base' => 'mlmta_dsf_certificate_pickup_pane',
+    'file' => 'mlmta_dsf_certificate_pickup.checkout_pane.inc',
+    'page' => 'checkout',
+    'weight' => -9,
+    'enabled' => FALSE,
+  );
+
+  return $checkout_panes;
+}
+
+/**
+ * Implements hook_commerce_checkout_pane_info_alter()
+ * Checks if the current order contains CMF products and if so shows the pane
+ */
+function mlmta_dsf_certificate_pickup_commerce_checkout_pane_info_alter(&$checkout_pane) {
+  global $user;
+  $current_order = commerce_cart_order_load($user->uid);
+  $is_dsf = FALSE;
+  if (empty($current_order)) {
+    return;
+  }
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $current_order);
+  foreach ($order_wrapper->commerce_line_items->getIterator() as $line_wrapper) {
+    if ($line_wrapper->commerce_product->sku->value() == 'dsf') {
+      $is_dsf = TRUE;
+      break;
+    } 
+  } 
+  if ($is_dsf) {
+    $checkout_pane['pickup_options']['enabled'] = TRUE;
+  }
+}
