@@ -176,15 +176,12 @@ function mlmta_dsf_link_autocomplete_callback($string = '') {
     $result = db_select('pursuit')
       ->fields('pursuit', array('pursuit_id', 'title'))
       ->condition('pursuit_id', db_like($string) . '%', 'LIKE')
+      ->condition('type', array('dsf_solo','dsf_ensemble', 'IN'))
       ->range(0, 10)
       ->execute();
     foreach ($result as $pursuit) {
-      // In the simplest case (see user_autocomplete), the key and the value are
-      // the same. Here we'll display the uid along with the username in the
-      // dropdown.
       $matches[$pursuit->title. ' '. "[$pursuit->pursuit_id]"] = check_plain($pursuit->title) . " [Reg. ID = $pursuit->pursuit_id]";
     }
   }
-
   drupal_json_output($matches);
 }
