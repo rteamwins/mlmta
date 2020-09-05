@@ -16,7 +16,7 @@ class PDF extends FPDI
   function Header() {
     if (is_null($this->_tplIdx)) {
       $path = drupal_get_path('module', 'mlmta_dsf_judgesheets');
-      $this->setSourceFile($path.'/dsf-score-sheet.pdf');
+      $this->setSourceFile($path.'/dsf-score-sheet-2020.pdf');
       $this->_tplIdx = $this->importPage(1);
     }
     $size = $this->useTemplate($this->_tplIdx);
@@ -111,8 +111,8 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
     $pdf->Write(0, 'Time: '. format_date(strtotime($date_items[0]['raw']['value'] . ' UTC'  ), 'custom', 'D, m/d/Y - h:ia'));
 
     // Accompanist
-    $pdf->SetXY(35, 82.5, TRUE);
-    $pdf->Write(0, $view->render_field('field_accompanist', $row_index));
+    //$pdf->SetXY(35, 82.5, TRUE);
+    //$pdf->Write(0, $view->render_field('field_accompanist', $row_index));
     
     // Students
     $name_x = 66;
@@ -123,23 +123,46 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
     $instrument_items = $instrument_handler->get_items($row);
     foreach ($student_items as $index => $student_item) {
       $pdf->SetXY($name_x, $name_y, TRUE);
-      $pdf->write(0, $student_reference_handler->render_item($index, $student_item));
+      $pdf->Write(0, $student_reference_handler->render_item($index, $student_item));
       $pdf->SetX($instrument_x, TRUE);
       $pdf->Write(0, $instrument_handler->render_item($index, $instrument_items[$index]));
       $name_y += $offset_y;
     }
+    
+    // Video links
+    $video_link1 = $view->render_field('field_video_1_link', $row_index);
+    $video_link2 = $view->render_field('field_video_2_link', $row_index);
+    $score_link1 = $view->render_field('field_score_1_link', $row_index);
+    $score_link2 = $view->render_field('field_score_2_link', $row_index);
+    $link_x = 47;
+    $score_x = 92;
+    if ($video_link1) {
+      $pdf->SetTextColor(0,0,255);
+      $pdf->SetXY($link_x, 56, TRUE);
+      $pdf->Write(0, 'Video 1 (click here)', $video_link1);
+      $pdf->SetXY($score_x, 56, TRUE);
+      $pdf->Write(0, 'Score 1 (click here)', $score_link1);
+      $pdf->SetXY($link_x, 64, TRUE);
+      $pdf->Write(0, 'Video 2 (click here)', $video_link2);
+      $pdf->SetXY($score_x, 64, TRUE);
+      $pdf->Write(0, 'Score 2 (click here)', $score_link2);
+      $pdf->SetTextColor(0,0,0);
+    }
+
+
+    
     
     // Student and teacher "codes"
     $student_code_x = 157;
     $teacher_code_x = 13;
     $student_code_y = 75.5;
     $student_codes = array();
-    foreach ($student_items as $index => $student_item) {
+    foreach ($student_items as $student_index => $student_item) {
       $student_codes[] = $student_item['raw']['target_id'];
     }
     $teacher_items = $teacher_reference_handler->get_items($row);
     $teacher_ids = array();
-    foreach ($teacher_items as $index => $teacher_item) {
+    foreach ($teacher_items as $teacher_index => $teacher_item) {
       $teacher_ids[] = $teacher_item['raw']['target_id'];
     }
     $pdf->SetFont('freesans', '', 10);
@@ -151,26 +174,52 @@ function mlmta_dsf_judgesheets_do_the_pdf($view) {
     // Pieces
     $piece_x = 13;
     $composer_x =143;
-    $piece_y = 96;
+    $piece_y = 89;
     $offset_y = 8;
     
     $piece_items = $piece_handler->get_items($row);
     $pdf->SetFont('freesans', '', 10);
     $pdf->SetXY($piece_x, $piece_y, TRUE);
-    foreach ($piece_items as $index => $piece_item) {
-      $piece_number = $index +1;
+    foreach ($piece_items as $piece_index => $piece_item) {
+      $piece_number = $piece_index +1;
       $piece_wrapper = entity_metadata_wrapper('piece', $piece_item['raw']['entity']);
-      $piece_title[$index] = $piece_wrapper->label();
-      $piece_composer[$index] = $piece_wrapper->piece_composer->label();
+      $piece_title[$piece_index] = $piece_wrapper->label();
+      $piece_composer[$piece_index] = $piece_wrapper->piece_composer->label();
       //$pdf->SetXY($piece_x, $piece_y, TRUE);
       $pdf->SetX($piece_x, TRUE);
       //$pdf->Write(0, $piece_number . '. ' . $piece_title[$index]);
-      $pdf->MultiCell(128,0,$piece_number . '. ' . $piece_title[$index], 0, 'L',false,0);
+      $pdf->MultiCell(128,0,$piece_number . '. ' . $piece_title[$piece_index], 0, 'L',false,0);
       $pdf->SetX($composer_x, TRUE);
-      $pdf->MultiCell(60,0,$piece_composer[$index],0,'L');
+      $pdf->MultiCell(60,0,$piece_composer[$piece_index],0,'L');
 //      $pdf->Write(0, $piece_composer[$index]);
       $piece_y += $offset_y;
     }
+    
+    // fields 
+    $pdf->SetXY(13,115,TRUE);
+    $pdf->TextField("piece1$row_index", 190, 49, array('multiline'=>true, 'lineWidth'=>1, 'borderStyle'=>'border.s'));
+    
+    $pdf->SetXY(13,168,TRUE);
+    $pdf->TextField("piece2$row_index", 190, 49, array('multiline'=>true, 'lineWidth'=>1, 'borderStyle'=>'border.s'));
+    
+    $pdf->SetXY(64,222, TRUE);
+    $pdf->RadioButton("rating$row_index", 6, array(), array(), '0', true);
+    $pdf->SetXY(114,222, TRUE);
+    $pdf->RadioButton("rating$row_index", 6, array(), array(), '1');
+    $pdf->SetXY(142,222, TRUE);
+    $pdf->RadioButton("rating$row_index", 6, array(), array(), '2');
+    $pdf->SetXY(170,222, TRUE);
+    $pdf->RadioButton("rating$row_index", 6, array(), array(), '3');
+    
+    $pdf->SetXY(35,230, TRUE);
+    $pdf->RadioButton("piecechoice$row_index", 6, array(), array(), 'piece1', true);
+    $pdf->SetXY(69,230, TRUE);
+    $pdf->RadioButton("piecechoice$row_index", 6, array(), array(), 'piece2');
+    
+    $pdf->SetXY(50,237, TRUE);
+    $pdf->TextField("signature$row_index", 90, 7, array('multiline'=>false, 'lineWidth'=>1, 'borderStyle'=>'border.s'));
+    
+
   }
   $pdf->Output();
 

@@ -13,7 +13,7 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
   //);
   
   $form['link_intro_text'] = array(
-    '#markup' => "<strong>Directions:</strong><ol><li>Upload your 2 videos, 2 musical scores (PDF), and theory test PDF to a cloud service like Google Drive, Dropbox or others (videos may instead be uploaded to Youtube or Vimeo if you wish)</li><li>Make sure to edit the sharing settings for ALL those files and videos so that \"anyone with the link can view\"</li><li>CAREFULLY select and copy the URL/links for each of those files, and paste below in the appropriate box</li></ol><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
+    '#markup' => "<strong>Directions:</strong><ol><li>Follow directions <a href='https://drive.google.com/file/d/1ps4Sy1khtMnZ5HRVqPN558dtPGn2Dw6-/view?usp=drive_web' target='_blank'>found here</a></li><li>CAREFULLY select and copy the URL/links for each of those files, and paste below in the appropriate box</li></ol><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
   );
     
     
