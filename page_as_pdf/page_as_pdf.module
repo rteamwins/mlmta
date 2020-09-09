@@ -73,7 +73,7 @@ function page_as_pdf_get_page($path) {
 
   $node->content = preg_replace('!<div class="feed-icon">.*</div>!sim', '', $node->content);
   // Delete any links 
-  $node->content = preg_replace('!<a href=[^<]*</a>!sim', '', $node->content);
+  //$node->content = preg_replace('!<a href=[^<]*</a>!sim', '', $node->content);
 
   // Delete the contextual links also
   //$node->content = preg_replace('!\s*<div class="contextual-links-wrapper">.*?</div>!sim', '', $node->content);
