@@ -1,0 +1,354 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function mlmta_dsf_compressed_judgesheets_menu()
+{
+  $items = array();
+  $items['admin/compressed-judgesheets'] = array(
+    'title' => 'Generate zipped judge sheet files',
+    'access arguments' => array('administer line items'),
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array('mlmta_dsf_compressed_judgesheets_form'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/** 
+ * Confirm form
+ */
+function mlmta_dsf_compressed_judgesheets_form($form, $form_state) {
+  $form = array();
+  $form['notice'] = array(
+    '#markup' => '<p>Please confirm that you would like to generate the judge sheets. The system will show you links to download zip files for each judge.</p>'
+  );
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Generate ZIP files',
+  );
+  return $form;
+}
+
+
+/**
+ * Creates the compressed zip files and displays the download links
+ */
+function mlmta_dsf_compressed_judgesheets_form_submit($form, &$form_state) {
+
+  // Create an array keyed by judge ID containing all pursuit_ids
+  $event_id  = variable_get('tenuto_dsf_event');
+  $q = new EntityFieldQuery();
+  $q->entityCondition('entity_type', 'pursuit');
+  $q->entityCondition('bundle', 'break', '!=');
+  $q->fieldCondition('field_event_reference', 'target_id',  $event_id);
+  $q->fieldCondition('pursuit_active', 'value', 1);
+  $q->fieldCondition('pursuit_timeblock_reference', 'target_id', 'NULL', '!=');
+  $q->fieldOrderBy('pursuit_date', 'value');
+  $r = $q->execute();
+  $pursuits = entity_load('pursuit', array_keys($r['pursuit']));
+  $personnel_ids = array();
+  foreach ($pursuits as $pursuit) {
+
+  $w = entity_metadata_wrapper('pursuit', $pursuit);
+    if (isset($w->pursuit_timeblock_reference)) {
+      if (empty($w->pursuit_timeblock_reference->timeblock_personnel_reference->value())) {
+        $personnel_ids['unassigned'][] = $w->getIdentifier();
+      }
+      foreach ($w->pursuit_timeblock_reference->timeblock_personnel_reference->getIterator() as $personnel_wrapper) {
+        $personnel_ids[$personnel_wrapper->getIdentifier()][] = $w->getIdentifier();
+      }
+    }
+  }
+
+  // Prepare the folders
+  $judge_sheet_base_path = 'public://dsf_judge_sheets/';
+  //file_prepare_directory($judge_sheet_base_path,  FILE_CREATE_DIRECTORY);
+  // Remove directory and files
+  if (is_dir($judge_sheet_base_path)) {
+    $di = new RecursiveDirectoryIterator($judge_sheet_base_path, FilesystemIterator::SKIP_DOTS);
+    $ri = new RecursiveIteratorIterator($di, RecursiveIteratorIterator::CHILD_FIRST);
+    foreach ($ri as $file) {
+      $file->isDir() ?  rmdir($file) : unlink($file);
+    }
+  } 
+
+  $url_links = array();
+  $judge_dirs = array();
+  $zip_files = array();
+  $batch = array(
+    'finished' => 'mlmta_dsf_compressed_judgesheet_finished',
+    'title' => t('Generating PDFs for judges'),
+    'init_message' => t('Process is starting.'),
+    'progress_message' => t('Processed @current out of @total.'),
+    'error_message' => t('PDF generation process has encountered an error.'),
+  );
+
+  foreach ($personnel_ids as $personnel_id => $pursuit_ids) {
+    $personnel_name = 'unassigned';
+    if ($personnel_id != 'unassigned') {
+      $personnel = personnel_load($personnel_id);
+      $personnel_name = $personnel->title;
+    }
+
+    $personnel_basename = preg_replace('/[^a-zA-Z0-9_ -]/s','_',$personnel_name); 
+
+    $this_judge_dir = file_create_filename($personnel_basename, $judge_sheet_base_path); 
+    $judge_dirs[] = $this_judge_dir;
+    $zip_files[] = $judge_sheet_base_path.$personnel_basename.'.zip';
+
+
+    file_prepare_directory($this_judge_dir,  FILE_CREATE_DIRECTORY);
+
+    $url_links[$personnel_id] = array(
+      'title' => $personnel_name,
+      'url' => file_create_url($judge_sheet_base_path.$personnel_basename.'.zip'),
+    );
+
+    $batch['operations'][] = array(
+      'mlmta_dsf_compressed_judgesheet_pdf_operation', 
+      array($pursuit_ids, $personnel_id, $this_judge_dir)
+    );
+  }
+
+  $batch['operations'][] = array(
+    'mlmta_dsf_compressed_judgesheet_zip_operation', 
+    array($judge_dirs, $zip_files, $url_links),
+  );
+
+  //dpm($batch);
+  batch_set($batch);
+}
+
+/** 
+ *  Batch operation for generating all PDFs for a judge
+ */
+function mlmta_dsf_compressed_judgesheet_pdf_operation($pursuit_ids, $personnel_id, $this_judge_dir, &$context) {
+
+  if (!isset($context['sandbox']['progress'])) {
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['current_item'] = 0;
+    $context['sandbox']['max'] = count($pursuit_ids);
+  }
+
+  $limit = 10; // process 10 pursuits at a time 
+
+  if ($context['sandbox']['current_item'] < $context['sandbox']['max']) {
+    $limit = min($context['sandbox']['current_item'] + $limit, $context['sandbox']['max']); 
+    while ($context['sandbox']['current_item'] < $limit) {
+      //watchdog('notice','processing ' . $context['sandbox']['current_item']. ' '. $pursuits[$context['sandbox']['current_item']]->pursuit_id);
+      $pursuit_id = $pursuit_ids[$context['sandbox']['current_item']];
+      $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit_id);
+      $timeblock_title = $pursuit_wrapper->pursuit_timeblock_reference->label();
+      $filename = $timeblock_title.'_'.$pursuit_id;
+      mlmta_dsf_compressed_judgesheets_pdf_generate($pursuit_wrapper->value(),$personnel_id, $this_judge_dir,$filename);
+      $context['message'] = t('Now processing registration ID %item', array('%item' => $pursuit_id));
+      $context['sandbox']['current_item']++;
+      $context['sandbox']['progress']++;
+    }
+    if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
+      $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+    } 
+  }
+}
+
+
+/** 
+ * Batch operation to create the zip files
+ */
+function mlmta_dsf_compressed_judgesheet_zip_operation($judge_dirs, $zip_files, $url_links, &$context) {
+  if (!isset($context['sandbox']['progress'])) {
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['current_item'] = 0;
+    $context['sandbox']['max'] = count($judge_dirs);
+  }
+
+  if ($context['sandbox']['current_item'] < $context['sandbox']['max'] ) {
+    $zipArchive = new ZipArchive();
+    $zip_file_realpath = drupal_realpath($zip_files[$context['sandbox']['current_item']]);
+    $judge_dir_realpath = drupal_realpath($judge_dirs[$context['sandbox']['current_item']]);
+    $zipArchive->open($zip_file_realpath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    $zipArchive->addGlob($judge_dir_realpath . '/*.pdf', GLOB_BRACE, array('remove_all_path' => TRUE));
+    $zipArchive->close();
+    unset($zipArchive);
+    $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+    $context['sandbox']['current_item']++;
+    $context['sandbox']['progress']++;
+  } else {
+    $context['results']['url_links'] = $url_links;
+  }
+}
+
+/** 
+ * Batch finished callback
+ */
+function mlmta_dsf_compressed_judgesheet_finished($success, $results, $operations) {
+  if($success) {
+    ob_start();
+    $url_links = $results['url_links'];
+    $output = "
+      <h2>List of zip files for each judge (click links to download)</h2><ul>
+    ";
+    foreach ($url_links as $url_link) {
+      $output .= '<li>'.l($url_link['title'], $url_link['url']).'</li>';
+    }
+    $output .= '</ul>';
+    drupal_set_message($output);
+
+  } else {
+    // An error occurred.
+    // $operations contains the operations that remained unprocessed.
+    $error_operation = reset($operations);
+    $message = t('An error occurred while processing %error_operation with arguments: @arguments', array('%error_operation' => $error_operation[0], '@arguments' => print_r($error_operation[1], TRUE)));
+    drupal_set_message($message, 'error');
+  }
+}
+
+ /**
+ * Generates an individual judgesheet and saves it to the appropriate folder
+ */
+
+function mlmta_dsf_compressed_judgesheets_pdf_generate($pursuit, $personnel_id, $folder, $filename)
+{
+  $personnel_name = 'unnassigned';
+  $personnel_id_text = 'N/A';
+  if ($personnel_id != 'unassigned') {
+    $personnel = personnel_load($personnel_id);
+    $personnel_name = $personnel->title;
+    $personnel_id_text = $personnel_id;
+  }
+  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+
+  ob_start();
+  // initiate PDF
+  $pdf = new PDF('P', 'mm', 'LETTER');
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 40, PDF_MARGIN_RIGHT);
+  //$pdf->SetAutoPageBreak(true, 40);
+  $pdf->setFontSubsetting(false);
+  $pdf->AddPage('P', 'LETTER');
+
+  $pdf->SetFont('freesans', '', 10);
+
+  // Room
+  $pdf->SetXY(45, 5, TRUE);
+  $pdf->Write(0, 'Room: ' . $pursuit_wrapper->pursuit_timeblock_reference->timeblock_room->label());
+
+  // Judge
+  $pdf->SetXY(45, 11, TRUE);
+  $pdf->Write(0, 'Judge: ' . $personnel_name . ' (Judge ID: ' . $personnel_id_text . ')');
+
+  // Date and time
+  $pdf->SetX(130, TRUE);
+  $pdf->Write(0, 'Time: ' . format_date($pursuit_wrapper->pursuit_date->value->value(), 'custom', 'D, m/d/Y - h:ia'));
+
+  // Accompanist
+  //$pdf->SetXY(35, 82.5, TRUE);
+  //$pdf->Write(0, $view->render_field('field_accompanist', $row_index));
+
+  // Students
+  $name_x = 66;
+  $instrument_x = 181;
+  $name_y = 44;
+  $offset_y = 7.5;
+  //$student_items = $student_reference_handler->get_items($row);
+  //$instrument_items = $instrument_handler->get_items($row);
+  foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $index => $student_wrapper) {
+    $pdf->SetXY($name_x, $name_y, TRUE);
+    $pdf->Write(0, $student_wrapper->label());
+    $pdf->SetX($instrument_x, TRUE);
+    $pdf->Write(0, $pursuit_wrapper->field_instrument_options[$index]->value());
+    $name_y += $offset_y;
+  }
+
+  // Video links
+  $video_link1 = $pursuit_wrapper->field_video_1_link->value();
+  $video_link2 = $pursuit_wrapper->field_video_2_link->value();
+  $score_link1 = $pursuit_wrapper->field_score_1_link->value();
+  $score_link2 = $pursuit_wrapper->field_score_2_link->value();;
+  $link_x = 47;
+  $score_x = 92;
+  if ($video_link1) {
+    $pdf->SetTextColor(0, 0, 255);
+    $pdf->SetXY($link_x, 56, TRUE);
+    $pdf->Write(0, 'Video 1 (click here)', $video_link1);
+    $pdf->SetXY($score_x, 56, TRUE);
+    $pdf->Write(0, 'Score 1 (click here)', $score_link1);
+    $pdf->SetXY($link_x, 64, TRUE);
+    $pdf->Write(0, 'Video 2 (click here)', $video_link2);
+    $pdf->SetXY($score_x, 64, TRUE);
+    $pdf->Write(0, 'Score 2 (click here)', $score_link2);
+    $pdf->SetTextColor(0, 0, 0);
+  }
+
+
+
+
+  // Student and teacher "codes"
+  $student_code_x = 157;
+  $teacher_code_x = 13;
+  $student_code_y = 75.5;
+  $student_codes = array();
+  foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student_index => $student_wrapper) {
+    $student_codes[] = $student_wrapper->getIdentifier();
+  }
+  $teacher_ids = array();
+  foreach ($pursuit_wrapper->pursuit_teacher_reference as $teacher_index => $teacher_wrapper) {
+    $teacher_ids[] = $teacher_wrapper->getIdentifier();
+  }
+  $pdf->SetFont('freesans', '', 10);
+  $pdf->SetXY($student_code_x, $student_code_y, TRUE);
+  $pdf->Write(0, 'Registration ID: ' . $pursuit_wrapper->getIdentifier());
+  $pdf->SetXY(130, 5, TRUE);
+  $pdf->Write(0, 'Teacher ID(s): ' . implode(', ', $teacher_ids));
+
+  // Pieces
+  $piece_x = 13;
+  $composer_x = 143;
+  $piece_y = 89;
+  $offset_y = 8;
+
+  $pdf->SetFont('freesans', '', 10);
+  $pdf->SetXY($piece_x, $piece_y, TRUE);
+  foreach ($pursuit_wrapper->pursuit_piece_reference->getIterator() as $piece_index => $piece_wrapper) {
+    $piece_number = $piece_index + 1;
+    $piece_title[$piece_index] = $piece_wrapper->label();
+    $piece_composer[$piece_index] = $piece_wrapper->piece_composer->label();
+    //$pdf->SetXY($piece_x, $piece_y, TRUE);
+    $pdf->SetX($piece_x, TRUE);
+    //$pdf->Write(0, $piece_number . '. ' . $piece_title[$index]);
+    $pdf->MultiCell(128, 0, $piece_number . '. ' . $piece_title[$piece_index], 0, 'L', false, 0);
+    $pdf->SetX($composer_x, TRUE);
+    $pdf->MultiCell(60, 0, $piece_composer[$piece_index], 0, 'L');
+    //      $pdf->Write(0, $piece_composer[$index]);
+    $piece_y += $offset_y;
+  }
+
+  // fields 
+  $pdf->SetXY(13, 115, TRUE);
+  $pdf->TextField("piece1", 190, 49, array('multiline' => true, 'lineWidth' => 1, 'borderStyle' => 'border.s'));
+
+  $pdf->SetXY(13, 168, TRUE);
+  $pdf->TextField("piece2", 190, 49, array('multiline' => true, 'lineWidth' => 1, 'borderStyle' => 'border.s'));
+
+  $pdf->SetXY(64, 222, TRUE);
+  $pdf->RadioButton("rating", 6, array(), array(), '0', true);
+  $pdf->SetXY(114, 222, TRUE);
+  $pdf->RadioButton("rating", 6, array(), array(), '1');
+  $pdf->SetXY(142, 222, TRUE);
+  $pdf->RadioButton("rating", 6, array(), array(), '2');
+  $pdf->SetXY(170, 222, TRUE);
+  $pdf->RadioButton("rating", 6, array(), array(), '3');
+
+  $pdf->SetXY(35, 230, TRUE);
+  $pdf->RadioButton("piecechoice", 6, array(), array(), 'piece1', true);
+  $pdf->SetXY(69, 230, TRUE);
+  $pdf->RadioButton("piecechoice", 6, array(), array(), 'piece2');
+
+  $pdf->SetXY(50, 237, TRUE);
+  $pdf->TextField("signature", 90, 7, array('multiline' => false, 'lineWidth' => 1, 'borderStyle' => 'border.s'));
+
+  $pdf->Output($folder . '/' . $filename.'.pdf', "F");
+  unset($pdf);
+  ob_end_clean();
+}
