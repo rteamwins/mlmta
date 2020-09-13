@@ -182,12 +182,16 @@ function mlmta_dsf_link_mail($key, &$message, $params) {
 function mlmta_dsf_link_autocomplete_callback($string = '') {
   $matches = array();
   if ($string) {
-    $result = db_select('pursuit')
+    $q = db_select('pursuit')
       ->fields('pursuit', array('pursuit_id', 'title'))
       ->condition('pursuit_id', db_like($string) . '%', 'LIKE')
-      ->condition('type', array('dsf_solo','dsf_ensemble', 'IN'))
-      ->range(0, 10)
-      ->execute();
+      ->condition('type', array('dsf_solo','dsf_ensemble', 'IN'));
+    $q->join('field_data_pursuit_active', 'pursuit_active', 'pursuit_id = pursuit_active.entity_id AND pursuit_active.entity_type = :pursuit_type', array(':pursuit_type' => 'pursuit'));
+    $q->fields('pursuit_active', array('pursuit_active_value'))
+      ->condition('pursuit_active_value', '1');
+    $q->range(0, 10);
+
+    $result = $q->execute();
     foreach ($result as $pursuit) {
       $matches[$pursuit->title. ' '. "[$pursuit->pursuit_id]"] = check_plain($pursuit->title) . " [Reg. ID = $pursuit->pursuit_id]";
     }
