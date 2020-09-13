@@ -48,10 +48,8 @@ function mlmta_dsf_compressed_judgesheets_form_submit($form, &$form_state) {
   $q->fieldOrderBy('pursuit_date', 'value');
   $r = $q->execute();
   if (empty($r['pursuit'])) {
-    $form['empty'] = array(
-      '#markup' => 'There are no students scheduled into timeblocks or rooms. The system can\'t generate judge sheets until students are scheduled.',
-    );
-    return $form;
+    drupal_set_message('There are no students scheduled into timeblocks or rooms. The system can\'t generate judge sheets until students are scheduled.', 'error');
+    return FALSE;
   }
   $pursuits = entity_load('pursuit', array_keys($r['pursuit']));
   $personnel_ids = array();
