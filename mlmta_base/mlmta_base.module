@@ -226,7 +226,7 @@ function _mlmta_student_build_list($student_type) {
   $student_array = array();
   global $user;
   $current_user = user_load($user->uid);
-  $current_teacher_id = !empty($current_user->field_user_teacher_reference['und'][0]['target_id'])? $current_user->field_user_teacher_reference['und'][0]['target_id'] : 0;
+  $current_teacher_id = scheduling_get_teacher_from_user();
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'student')
         ->entityCondition('bundle', $student_type)
