@@ -13,16 +13,23 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
   //);
   
   $form['link_intro_text'] = array(
-    '#markup' => "<strong>Directions:</strong><ol><li>Follow directions <a href='https://drive.google.com/file/d/1ps4Sy1khtMnZ5HRVqPN558dtPGn2Dw6-/view?usp=drive_web' target='_blank'>found here</a></li><li>CAREFULLY select and copy the URL/links for each of those files, and paste below in the appropriate box</li></ol><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
+    '#markup' => "<p><strong>Submit all materials by Saturday, October 3, 12PM NOON</strong></p><p><strong>Directions:</strong><ol><li>Follow directions <a href='https://drive.google.com/file/d/1ps4Sy1khtMnZ5HRVqPN558dtPGn2Dw6-/view?usp=drive_web' target='_blank'>found here</a></li><li>CAREFULLY select and copy the URL/links for each of those files, and paste below in the appropriate box</li></ol></p><p>After submitting, you will receive a confirmation email. If you have questions, please contact Felicia Lohidajat  at flohidajat@gmail.com</p>",
   );
     
     
   $form['pursuit_text'] = array(
     '#type' => 'textfield',
     '#title' => t('Registration ID'),
-    '#description' => t('If you don\'t know the registration ID, please contact the teacher. The ID is found in the registration confirmation email that the teacher received.'),
+    '#description' => t('PLEASE NOTE: Enter the REGISTRATION ID (NOT the Student ID). If you don\'t know the registration ID, please contact the teacher. The ID is found in the registration confirmation email that the teacher received.'),
     // The autocomplete path is provided in hook_menu in ajax_example.module.
-    '#autocomplete_path' => 'dsf_links_autocomplete_callback',
+    //'#autocomplete_path' => 'dsf_links_autocomplete_callback',
+    '#required' => TRUE,
+  );
+  
+  $form['last_name'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Student last name',
+    '#description' => 'Enter the last name of the student. If this is an ensemble, enter the last name of ONE of the students (any one)',
     '#required' => TRUE,
   );
   
@@ -65,7 +72,7 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
     '#type' => 'urlfield',
     '#title' => 'URL link to theory test',
     '#description' => 'Copy and paste the link to the theory test PDF. Be sure it is viewable by anyone with the link.',
-    '#required' => TRUE,
+    '#required' => FALSE,
   );
   
   $form['integrity_pledge'] = array(
@@ -87,26 +94,46 @@ function mlmta_dsf_link_form_form_validate(&$form, &$form_state) {
   $pursuit_text = $values['pursuit_text'];
   //dpm($pursuit_text);
   $result = preg_match('/\[([0-9]+)\]$/', $pursuit_text, $matches);
-  //dpm($result);
+  watchdog('Link submission reg ID', $pursuit_text);
   if ($result > 0) {
     // If $result is nonzero, we found a match and can use it as the index into
     // $matches.
     $pursuit_id = $matches[$result];
     //dpm($pursuit_id);
     $pursuit = pursuit_load($pursuit_id);
-    if (empty($pursuit)) {
-      form_error($form['pursuit_text'], t('The registration ID is not valid'));
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    if (empty($pursuit) || !isset($pursuit_wrapper->field_video_1_link)) {
+      form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
+      return;
     }
   }
   else {
     $pursuit = pursuit_load($pursuit_text);
+
+    $last_name = strtolower(trim($values['last_name']));
     //dpm($pursuit);
     if (empty($pursuit)) {
-      form_error($form['pursuit_text'], t('The registration ID is not valid'));
-
+                  form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
+                  return;
+    } else {
+        $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+        if ( !isset($pursuit_wrapper->field_video_1_link)) {
+                  form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
+                  return;
+        }
     }
   }
-
+      $last_name = strtolower(trim($values['last_name']));
+  $match_found = FALSE;
+  foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student_wrapper) {
+    if ($last_name === trim(strtolower($student_wrapper->student_last_name->value()))) {
+      $match_found = TRUE;
+    }
+  }
+  if (!$match_found) {
+    form_error($form['last_name'], t('The registration ID and the student last name do not match. Try again or contact mlmta.webmaster@gmail.com'));
+  }
+  
   if (!empty($pursuit)) {
     $form_state['storage']['pursuit'] = $pursuit;    
   }
