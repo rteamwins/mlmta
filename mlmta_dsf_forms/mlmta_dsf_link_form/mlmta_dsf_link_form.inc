@@ -92,51 +92,35 @@ function mlmta_dsf_link_form_form($form, &$form_state) {
 function mlmta_dsf_link_form_form_validate(&$form, &$form_state) {
   $values = $form_state['values'];
   $pursuit_text = $values['pursuit_text'];
+  $last_name = strtolower(trim($values['last_name']));
   //dpm($pursuit_text);
-  $result = preg_match('/\[([0-9]+)\]$/', $pursuit_text, $matches);
-  watchdog('Link submission reg ID', $pursuit_text);
-  if ($result > 0) {
-    // If $result is nonzero, we found a match and can use it as the index into
-    // $matches.
-    $pursuit_id = $matches[$result];
-    //dpm($pursuit_id);
-    $pursuit = pursuit_load($pursuit_id);
-    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
-    if (empty($pursuit) || !isset($pursuit_wrapper->field_video_1_link)) {
-      form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
-      return;
-    }
-  }
-  else {
-    $pursuit = pursuit_load($pursuit_text);
+  // $result = preg_match('/\[([0-9]+)\]$/', $pursuit_text, $matches); This was old, when AJAX looked up the student
+  //watchdog('Link submission reg ID', $pursuit_text);
 
-    $last_name = strtolower(trim($values['last_name']));
-    //dpm($pursuit);
-    if (empty($pursuit)) {
-                  form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
-                  return;
-    } else {
-        $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
-        if ( !isset($pursuit_wrapper->field_video_1_link)) {
-                  form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
-                  return;
+  $pursuit = pursuit_load($pursuit_text);
+  //dpm($pursuit);
+  if (empty($pursuit)) { // An empty pursuit - abort
+    form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
+    return;
+  } else {
+    $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+    if (!isset($pursuit_wrapper->field_video_1_link)) { // Pursuit does not have a video link field
+      form_error($form['pursuit_text'], t('The registration ID is not valid. Try again or contact mlmta.webmaster@gmail.com'));
+    }
+    else {
+      $match_found = FALSE;
+      foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student_wrapper) {
+        if ($last_name === trim(strtolower($student_wrapper->student_last_name->value()))) {
+          $match_found = TRUE;
         }
+      }
+      if (!$match_found) {
+        form_error($form['last_name'], t('The registration ID and the student last name do not match. Try again or contact mlmta.webmaster@gmail.com'));
+      }
+      $form_state['storage']['pursuit'] = $pursuit;    
     }
-  }
-      $last_name = strtolower(trim($values['last_name']));
-  $match_found = FALSE;
-  foreach ($pursuit_wrapper->pursuit_student_reference->getIterator() as $student_wrapper) {
-    if ($last_name === trim(strtolower($student_wrapper->student_last_name->value()))) {
-      $match_found = TRUE;
-    }
-  }
-  if (!$match_found) {
-    form_error($form['last_name'], t('The registration ID and the student last name do not match. Try again or contact mlmta.webmaster@gmail.com'));
   }
   
-  if (!empty($pursuit)) {
-    $form_state['storage']['pursuit'] = $pursuit;    
-  }
 }
 
 function mlmta_dsf_link_form_form_submit($form, &$form_state) {
@@ -209,8 +193,8 @@ function mlmta_dsf_link_mail($key, &$message, $params) {
 function mlmta_dsf_link_autocomplete_callback($string = '') {
   $matches = array();
   if ($string) {
-    $q = db_select('pursuit')
-      ->fields('pursuit', array('pursuit_id', 'title'))
+    $q = db_select('pursuit');
+    $q->fields('pursuit', array('pursuit_id', 'title'))
       ->condition('pursuit_id', db_like($string) . '%', 'LIKE')
       ->condition('type', array('dsf_solo','dsf_ensemble', 'IN'));
     $q->join('field_data_pursuit_active', 'pursuit_active', 'pursuit_id = pursuit_active.entity_id AND pursuit_active.entity_type = :pursuit_type', array(':pursuit_type' => 'pursuit'));

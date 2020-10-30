@@ -70,8 +70,8 @@ function mlmta_supersat_mc_form($form, &$form_state, $pursuit = NULL) {
   if (!empty($pursuit_wrapper->pursuit_teacher_reference->raw())) {
     $default_value = $pursuit_wrapper->pursuit_teacher_reference->raw();
   } else {
-    $default_value = !empty ($current_user->field_user_teacher_reference['und'][0]['target_id']) ?
-        $current_user->field_user_teacher_reference['und'][0]['target_id'] :
+    $default_value = scheduling_get_teacher_from_user() ?
+        scheduling_get_teacher_from_user() :
         NULL;
   }
   $form['teacher_fieldset'] = array(
@@ -161,7 +161,7 @@ function mlmta_supersat_mc_form_validate($form, $form_state) {
     if (!user_access('register more than four students in master class')) {
       global $user;
       $current_user = user_load($user->uid);
-      $teacher_id = $current_user->field_user_teacher_reference['und'][0]['target_id'];
+      $teacher_id = scheduling_get_teacher_from_user();
       $q = new EntityFieldQuery();
       $q->entityCondition('entity_type', 'pursuit')
         ->entityCondition('bundle', 'mc')

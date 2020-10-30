@@ -86,8 +86,8 @@ EOT;
   if (!empty($pursuit_wrapper->pursuit_teacher_reference->raw())) {
     $default_value = $pursuit_wrapper->pursuit_teacher_reference->raw();
   } else {
-    $default_value = !empty ($current_user->field_user_teacher_reference['und'][0]['target_id']) ?
-        $current_user->field_user_teacher_reference['und'][0]['target_id'] :
+    $default_value = scheduling_get_teacher_from_user() ?
+        scheduling_get_teacher_from_user():
         NULL;
   }
   $form['teacher_fieldset'] = array(

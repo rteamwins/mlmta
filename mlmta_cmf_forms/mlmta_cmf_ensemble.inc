@@ -236,11 +236,9 @@ function mlmta_cmf_ensemble_student ($form, &$form_state) {
   
   if (!empty($form_state['pursuit'])) {
     $form['student'][$delta]['previous_teachers']['#default_value'] = $form_state['pursuit']->pursuit_teacher_reference['und'][$delta]['target_id'];
-  } elseif (!empty($current_user->field_user_teacher_reference['und'][0]['target_id'])) {
+  } elseif ($teacher_id_for_form = scheduling_get_teacher_from_user()) {
     // This is reached when the triggering element is not ajax and there is no pursuit attached, and the user references a teacher      
-    $teacher_id_for_form =  $current_user->field_user_teacher_reference['und'][0]['target_id'];
     if ($teacher_id_for_form) {
-      $teacher = teacher_load($teacher_id_for_form);
       $form['student'][$delta]['previous_teachers']['#default_value'] = $teacher_id_for_form;
     }
   }
