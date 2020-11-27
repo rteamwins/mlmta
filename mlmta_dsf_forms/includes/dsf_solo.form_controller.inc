@@ -37,9 +37,9 @@ class DsfSoloFormController extends SchedulingDefaultFormController {
       ),
     );
     $form_state['multiple_distributed_fields'] = array(
-      'field_instrument_options',
-      'field_theory_test_type',
-      'field_theory_test_level',
+      'field_name'=>'field_instrument_options',
+      'field_name'=>'field_theory_test_type',
+      'field_name'=>'field_theory_test_level',
     );
     parent::form_init($form, $form_state, $pursuit);
 
