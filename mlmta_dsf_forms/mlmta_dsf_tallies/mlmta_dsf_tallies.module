@@ -5,6 +5,23 @@
  */
 
 function mlmta_dsf_tallies_menu() {
+  
+  
+  $items = array( 
+    'admin/tallies-mlmta-dsf-competitions' => array(
+      'title' => 'MLMTA DSF registration tallies',
+      'description' => 'Form to generate tallies',
+      'access arguments' => array(
+        'edit any pursuit entities'
+      ),
+      'page callback' => 'mlmta_dsf_tallies_page',
+      'type' => MENU_CALLBACK,
+    ),
+  );
+  return $items;
+}
+
+function mlmta_dsf_tallies_page() {
   $options = array(
     'type' => 'Registration type',
     'field_piano_solo_level' => 'Level',
@@ -19,18 +36,6 @@ function mlmta_dsf_tallies_menu() {
     'pursuit_preferred_time' => 'field_data_pursuit_preferred_time',
     'pursuit_group_tagged' => 'field_data_pursuit_group_tagged',
   );
-  
-  $items = array( 
-    'admin/mlmta-dsf-competitions-tallies' => array(
-      'title' => 'MLMTA DSF registration tallies',
-      'description' => 'Form to generate tallies',
-      'access arguments' => array(
-        'edit any pursuit entities'
-      ),
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('pursuit_wizard_tallies_form', $options, $grouping_fields),
-      'type' => MENU_CALLBACK,
-    ),
-  );
-  return $items;
+
+  return drupal_get_form('pursuit_wizard_tallies_form', $options, $grouping_fields);
 }

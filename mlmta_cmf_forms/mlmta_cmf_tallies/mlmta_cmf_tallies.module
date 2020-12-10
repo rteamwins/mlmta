@@ -5,6 +5,26 @@
  */
 
 function mlmta_cmf_tallies_menu() {
+  
+  
+  $items = array( 
+    'admin/tallies-mlmta-cmf-competitions' => array(
+      'title' => 'MLMTA CMF registration tallies',
+      'description' => 'Form to generate tallies',
+      'access arguments' => array(
+        'edit any pursuit entities'
+      ),
+      'page callback' => 'mlmta_dmf_tallies_page',
+      'type' => MENU_CALLBACK,
+    ),
+  );
+  return $items;
+}
+
+/** 
+ * Callback
+ */
+function mlmta_dmf_tallies_page() {
   $options = array(
     'type' => 'Registration type',
     'field_piano_solo_level' => 'Level',
@@ -19,18 +39,7 @@ function mlmta_cmf_tallies_menu() {
     'field_grade' => 'field_data_field_grade',
     'pursuit_group_tagged' => 'field_data_pursuit_group_tagged',
   );
-  
-  $items = array( 
-    'admin/mlmta-cmf-competitions-tallies' => array(
-      'title' => 'MLMTA CMF registration tallies',
-      'description' => 'Form to generate tallies',
-      'access arguments' => array(
-        'edit any pursuit entities'
-      ),
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('pursuit_wizard_tallies_form', $options, $grouping_fields),
-      'type' => MENU_CALLBACK,
-    ),
-  );
-  return $items;
+  $output = drupal_get_form('pursuit_wizard_tallies_form', $options, $grouping_fields);
+
+  return $output;
 }

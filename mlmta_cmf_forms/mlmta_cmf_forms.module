@@ -788,24 +788,26 @@ function mlmta_cmf_registration_forms($pursuit_type, $pursuit = NULL) {
 
 /**
  * Implements hook_timeblock_buffer_alter().
+ * 
+ * I HAVE TEMPORARILY COMMENTED THESE OUT FOR THE DREAMLAND DEMO 
  */
-function mlmta_cmf_forms_timeblock_buffer_alter(&$buffer, $timeblock, $pursuit) {
-  if ($pursuit->type != 'cmf_solo') {
-    return;
-  }
-  $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
-  switch ($pursuit_wrapper->field_piano_solo_level->value()) {
-    case 'Elementary':
-      $buffer = 240;
-      break;
-    case 'Lower intermediate':
-      $buffer = 210;
-      break;
-    case 'Upper intermediate':
-    case 'Advanced':
-      $buffer = 180;
-      break;
-    default:
-      $buffer = 210;
-  }
-}
+// function mlmta_cmf_forms_timeblock_buffer_alter(&$buffer, $timeblock, $pursuit) {
+//   if ($pursuit->type != 'cmf_solo') {
+//     return;
+//   }
+//   $pursuit_wrapper = entity_metadata_wrapper('pursuit', $pursuit);
+//   switch ($pursuit_wrapper->field_piano_solo_level->value()) {
+//     case 'Elementary':
+//       $buffer = 240;
+//       break;
+//     case 'Lower intermediate':
+//       $buffer = 210;
+//       break;
+//     case 'Upper intermediate':
+//     case 'Advanced':
+//       $buffer = 180;
+//       break;
+//     default:
+//       $buffer = 210;
+//   }
+// }
