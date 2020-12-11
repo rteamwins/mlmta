@@ -17,13 +17,13 @@ function mlmta_cmf_forms_menu(){
     //'file' => 'mlmta_cmf_solo.inc',
   );
    
-  $items['admin/cmf-form/%ctools_js/%pursuit/view'] = array(
-    'title' => 'CMF solo registration',
-    'page callback' => 'mlmta_cmf_forms_modal_show',
-    'page arguments' => array(2, 3),
-    'access callback' => 'user_is_logged_in',
-    'type' => MENU_CALLBACK,
-  );
+  // $items['admin/cmf-form/%ctools_js/%pursuit/view'] = array(
+  //   'title' => 'CMF solo registration',
+  //   'page callback' => 'mlmta_cmf_forms_modal_show',
+  //   'page arguments' => array(2, 3),
+  //   'access callback' => 'user_is_logged_in',
+  //   'type' => MENU_CALLBACK,
+  // );
   
   //$items['admin/config/tenuto-registrations/manage/cmf-settings'] = array(
   //  'title' => 'Constance Murray general settings',
@@ -113,29 +113,29 @@ function mlmta_cmf_forms_pursuit_calculate_trimmed_duration_alter(&$max_duration
  *    The pursuit to view
  */
 
-function mlmta_cmf_forms_modal_show($ajax, $pursuit){
-    if ($pursuit->type == 'break') {
-      if ($ajax) {
-        ctools_include('modal');
-        return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
-      } else{
-       return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
-      }
-    }
-    $page = mlmta_cmf_forms_page($pursuit);
-    if ($ajax) {
-      //watchdog('checking ajax', 'is here');
-      //ctools_include('ajax');
-      ctools_include('modal');
-      if (empty($page)) {
-        return 'Error';
-      }
-      return ctools_modal_render('',$page);
-    } else {
-    // watchdog('checking ajax', 'is NOT here');
-      return $page; 
-    }
-}
+// function mlmta_cmf_forms_modal_show($ajax, $pursuit){
+//     if ($pursuit->type == 'break') {
+//       if ($ajax) {
+//         ctools_include('modal');
+//         return ctools_modal_render('Nope','You cannot view or edit a break or placeholder.');
+//       } else{
+//        return 'You cannot view or edit a break or placeholder. Click the left arrow to go back to the previous page.';
+//       }
+//     }
+//     $page = mlmta_cmf_forms_page($pursuit);
+//     if ($ajax) {
+//       //watchdog('checking ajax', 'is here');
+//       //ctools_include('ajax');
+//       ctools_include('modal');
+//       if (empty($page)) {
+//         return 'Error';
+//       }
+//       return ctools_modal_render('',$page);
+//     } else {
+//     // watchdog('checking ajax', 'is NOT here');
+//       return $page; 
+//     }
+// }
 
 
 ///**
@@ -807,5 +807,11 @@ function mlmta_cmf_forms_timeblock_buffer_alter(&$buffer, $timeblock, $pursuit) 
       break;
     default:
       $buffer = 210;
+  }
+}
+
+function mlmta_cmf_forms_preprocess_judgesheet_judge_form(&$variables) {
+  if ($variables['form']['#entity']->type == 'mlmta_cmf') {
+    $variables['theme_hook_suggestions'][] = 'judgesheet_judge_form__mlmta_cmf';
   }
 }
