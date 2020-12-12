@@ -60,7 +60,7 @@ class NORMALPDF extends TCPDF {
  * Defines menu callbacks common to all systems
  */
 function mlmta_base_menu() {
-  $items['mlmta-form/%pursuit/view'] = array(
+  $items['generic-form/%pursuit/view'] = array(
     'title' => 'Registration',
     'page callback' => 'mlmta_base_view_page',
     'page arguments' => array(1),
@@ -68,7 +68,7 @@ function mlmta_base_menu() {
     'type' => MENU_CALLBACK,
   );
   
-  $items['mlmta-form/%pursuit/edit'] = array(
+  $items['generic-form/%pursuit/edit'] = array(
     'title' => 'Registration',
     'page callback' => 'mlmta_base_edit_page',
     'page arguments' => array(1),
@@ -76,7 +76,7 @@ function mlmta_base_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  $items['admin/mlmta-form/%ctools_js/%pursuit/view'] = array(
+  $items['admin/generic-form/%ctools_js/%pursuit/view'] = array(
     'title' => 'MLMTA registration',
     'page callback' => 'mlmta_base_modal_show',
     'page arguments' => array(2, 3),
@@ -421,7 +421,7 @@ function mlmta_base_preprocess_entity(&$variables) {
     $wrapper = entity_metadata_wrapper('pursuit', $variables['pursuit']);
     $variables['content']['bundle'] = array('#markup' => scheduling_bundle_label('pursuit', $variables['pursuit']->type));
     $variables['pursuit_id'] = $variables['pursuit']->pursuit_id;
-    $base_url = 'mlmta-form/'.$wrapper->getIdentifier();
+    $base_url = 'generic-form/'.$wrapper->getIdentifier();
     $destination = str_replace('ajax/', 'nojs/', current_path());
     $variables['content']['edit_link']['#markup'] = l(
                                             'Edit',
