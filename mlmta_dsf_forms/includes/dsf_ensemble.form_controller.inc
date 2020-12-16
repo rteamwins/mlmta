@@ -37,9 +37,9 @@ class DsfEnsembleFormController extends SchedulingEnsembleDefaultController {
       ),
     );
     $form_state['multiple_distributed_fields'] = array(
-      'field_name'=>'field_theory_test_type',
-      'field_name'=>'field_theory_test_level',
-      'field_name'=>'field_instrument_options',
+      'field_theory_test_type' =>array('field_name'=>'field_theory_test_type'),
+      'field_theory_test_level' => array('field_name'=>'field_theory_test_level'),
+      'field_instrument_options' => array('field_name'=>'field_instrument_options'),
     );
     $form_state['maximum_number_of_students'] = 4;
     
