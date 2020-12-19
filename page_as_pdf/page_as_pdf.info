@@ -1,4 +1,0 @@
-name = Page as PDF
-description = Processes a page and downloads it as PDF using TCPDF. Requires TCPDF.php to be installed.
-core = 7.x
-package = Scheduling
