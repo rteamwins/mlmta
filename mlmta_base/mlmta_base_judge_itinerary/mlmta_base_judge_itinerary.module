@@ -12,7 +12,7 @@ function mlmta_base_judge_itinerary_menu() {
   $items['pdf-mlmta-judge-itinerary'] = array(
     'title' => 'Judge itinerary',
     'type' => MENU_CALLBACK,
-    'access arguments' => array('edit any personnel entitites'),
+    'access arguments' => array('edit any personnel entities'),
     'page callback' => 'mlmta_base_judge_itinerary_page',
   );
 
