@@ -1,0 +1,139 @@
+<?php
+
+/** 
+ * @file Functions to generate a PDF with each judge itinerary for the active event
+ *
+ */
+
+/** 
+* Implements hook_menu().
+*/
+function mlmta_base_judge_itinerary_menu() {
+  $items['pdf-mlmta-judge-itinerary'] = array(
+    'title' => 'Judge itinerary',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('edit any personnel entitites'),
+    'page callback' => 'mlmta_base_judge_itinerary_page',
+  );
+
+  return $items;
+}
+
+function mlmta_base_judge_itinerary_page() {
+  $active_event_id = event_switch_get_active_event();
+  $event = event_load($active_event_id);
+  // Query the database
+  $q = db_select('personnel');
+  $q->fields('personnel', array('personnel_id'));
+
+  // Get first and last name for sorting
+  $q->join('field_data_personnel_first_name', 'first_name', 'first_name.entity_id = personnel_id');
+  $q->fields('first_name', array('personnel_first_name_value'));
+  $q->join('field_data_personnel_last_name', 'last_name', 'last_name.entity_id = personnel_id');
+  $q->fields('last_name', array('personnel_last_name_value')); 
+
+  // Join to timeblock reference
+  $q->join('field_data_personnel_timeblock_reference', 'personnel_timeblock', 'personnel_timeblock.entity_id = personnel_id AND personnel_timeblock.entity_type = :personnel_type', array(':personnel_type' => 'personnel'));
+  $q->fields('personnel_timeblock', array('personnel_timeblock_reference_target_id'));
+  $q->join('timeblock', 'timeblock', 'timeblock.timeblock_id = personnel_timeblock_reference_target_id');
+  $q->fields('timeblock', array('timeblock_id', 'title'));
+
+  // join the timeblock date and time
+  $q->join('field_data_timeblock_date', 'timeblock_date', 'timeblock_date.entity_id = timeblock_id');
+  $q->fields('timeblock_date', array('timeblock_date_value', 'timeblock_date_value2'));
+
+  // Join to number of slots
+  $q->join('field_data_timeblock_pursuit_counter', 'pursuit_counter', 'pursuit_counter.entity_id = timeblock_id');
+  $q->fields('pursuit_counter', array('timeblock_pursuit_counter_value'));
+
+  // Join to room for room name
+  $q->join('field_data_timeblock_room', 'timeblock_room', 'timeblock_room.entity_id = timeblock_id');
+  $q->fields('timeblock_room', array('timeblock_room_tid'));
+  $q->join('taxonomy_term_data', 'room', 'room.tid = timeblock_room_tid');
+  $q->fields('room', array('name'));
+  
+  // Join to active event through timeblock to filter for active event
+  $q->join('field_data_field_event_reference', 'timeblock_event', 'timeblock_event.entity_id = personnel_timeblock_reference_target_id AND timeblock_event.entity_type = :timeblock_type AND timeblock_event.field_event_reference_target_id = :active_event_id' , array(':timeblock_type' => 'timeblock', ':active_event_id' => $active_event_id));
+
+  $q->orderBy('personnel_last_name_value');
+  $q->orderBy('personnel_first_name_value');
+  $q->orderBy('timeblock_date_value');
+
+  $r = $q->execute();
+
+  if($r->rowCount() == 0) {
+    return 'No judges found for the active event';
+  }
+
+  module_load_include('inc', 'mlmta_base', 'includes/pdf_classes');
+  $pdf = new MYPDF('P','mm', 'LETTER');
+  $pdf->event = 'MLMTA ' . $event->title;
+  $pdf->SetMargins(PDF_MARGIN_LEFT, 20, PDF_MARGIN_RIGHT);
+  $pdf->SetAutoPageBreak(true, 20);
+  $pdf->setFontSubsetting(false);
+  // set header and footer fonts
+  $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+  $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+
+  // set margins
+  $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+  $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+  $pdf->SetFooterMargin(PDF_MARGIN_FOOTER); 
+
+  $header = array(
+    'title' => array('data' => 'Time block', 'align' => 'center'),
+    'name' => array('data' => 'Room', 'align' => 'center'),
+    'date' => array('data' => 'Date', 'align' => 'center'),
+    'start_time' => array('data' => 'Start time', 'align' => 'center'),
+    'end_time' => array('data' => 'End time ', 'align' => 'center'),
+    'counter' => array('data' => 'Entrants', 'align' => 'center'),   
+  );
+
+  $current_personnel_id = '';
+  $table ='';
+  $rows = array();
+  foreach($r as $row) {
+    $cells = array();
+    if ($row->personnel_id !== $current_personnel_id) {
+      $current_personnel_id = $row->personnel_id;
+      if (!empty($rows)) {
+        $table =  theme('table', array('header'=>$header, 'rows' => $rows, 'attributes' => array('border'=>1, 'cellpadding' => 3)));
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->SetXY(15, 30, TRUE);
+        $pdf->writeHTML($table, true, false, false, false, '');   
+      }
+      $pdf->AddPage();
+
+      $pdf->SetXY(15, 20, TRUE);
+      $pdf->SetFontSize(16);
+      $pdf->Cell(100, 0, $row->personnel_first_name_value.
+                 ' '. $row->personnel_last_name_value);
+      $pdf->SetX(120, TRUE);
+      $pdf->Cell(90, 0, 'Personnel ID: '.$row->personnel_id);
+      $rows = array();
+      $bg = '#FFFFFF';
+    }
+    $cells['title'] = array('data'=>$row->title, 'align' => 'center');
+    $cells['name'] = array('data'=>$row->name, 'align' => 'center');
+    $cells['date'] = array('data' => format_date(strtotime($row->timeblock_date_value), 'custom', 'm/d/Y'), 'align' => 'center');
+    $cells['start_time'] = array('data' => format_date(strtotime($row->timeblock_date_value), 'custom', 'h:ia'), 'align' => 'center');
+    $cells['end_time'] = array('data' => format_date(strtotime($row->timeblock_date_value2), 'custom', 'h:ia'), 'align' => 'center');
+    $cells['counter'] = array('data' => $row->timeblock_pursuit_counter_value, 'align' => 'center');
+    $rows[] = array('data' => $cells, 'nobr' => 'true', 'style' => 'background-color:'.$bg.';');
+    $bg = $bg == '#FFFFFF' ? '#DDDDDD' : '#FFFFFF';    
+  }
+
+  if (!empty($rows)) {
+    $table =  theme('table', array('header'=>$header, 'rows' => $rows, 'attributes' => array('border'=>1, 'cellpadding' => 3)));
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->SetXY(15, 30, TRUE);
+    $pdf->writeHTML($table, true, false, false, false, '');   
+  }
+  
+  $out = $pdf->Output('tempo.pdf', 'I');
+  $file = 'mlmta_judge_itinerary.pdf';
+  drupal_add_http_header('Content-Type', 'application/pdf');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename = "'. $file.'"');
+  echo $out;
+  drupal_exit();
+}

@@ -1,0 +1,4 @@
+name = MLMTA judge itinerary
+description = Generates a PDF for each judge with their itinerary
+core = 7.x
+package = MLMTA 
