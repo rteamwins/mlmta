@@ -9,7 +9,7 @@
 * Implements hook_menu().
 */
 function mlmta_base_judge_itinerary_menu() {
-  $items['pdf-mlmta-judge-itinerary'] = array(
+  $items['pdf-generic-judge-itinerary'] = array(
     'title' => 'Judge itinerary',
     'type' => MENU_CALLBACK,
     'access arguments' => array('edit any personnel entities'),
