@@ -1026,3 +1026,14 @@ function mlmta_base_preprocess_views_view_table(&$vars) {
     }
   }
 }
+
+/** 
+ * Implements hook_form_teacher_form_alter().
+ * Hides the "non member" checkbox from non managers
+ */
+function mlmta_base_form_teacher_form_alter(&$form) {
+  global $user;
+  if (!(in_array('manager', $user->roles) || in_array('administrator', $user->roles))) {
+    $form['field_non_member']['#access'] = FALSE;
+  }
+}
