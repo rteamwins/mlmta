@@ -534,9 +534,9 @@ function mlmta_cmf_forms_tokens($type, $tokens, array $data = array(), array $op
             });                                    
           }
           $value = implode(', ', $value);
-        } elseif ($field_info['type'] == 'datetime' || $field_name == 'deadline') { 
+        } elseif ($field_name == 'deadline' || $field_info['type'] == 'datetime') { 
           $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
-          if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+          if (!empty($field_instance) && $field_instance['display']['default']['settings']['format_type'] == 'custom') {
             $format = $field_instance['display']['default']['settings']['custom_date_format'];
           } else {
             $format = 'm/d/Y h:ia';
@@ -587,7 +587,7 @@ function mlmta_cmf_forms_message_order_summary(Message $message) {
   // Disable SQL query rewrite so this renders properly for token.
   // @link https://www.drupal.org/node/1895418
   // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
-  $view->display['recital']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
+  //$view->display['recital']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
 
   return $view->preview();
 }
