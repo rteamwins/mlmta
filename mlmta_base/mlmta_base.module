@@ -432,10 +432,10 @@ function mlmta_base_preprocess_entity(&$variables) {
                                               ),
                                             )
     );
-    if ($wrapper->pursuit_order_reference->status->value() != 'cart' && !mlmta_base_edit_access_check($wrapper->value())) {
+    if (!empty($wrapper->pursuit_order_reference->value()) && $wrapper->pursuit_order_reference->status->value() != 'cart' && !mlmta_base_edit_access_check($wrapper->value())) {
       $variables['content']['edit_link']['#markup'] = 'Paid registrations cannot be edited. If you need changes please contact the festival chair.';
     } 
-    $variables['in_cart'] = $wrapper->pursuit_order_reference->status->value() == 'cart' ? 1 : 0;
+    $variables['in_cart'] = (!empty($wrapper->pursuit_order_reference->value()) && $wrapper->pursuit_order_reference->status->value() == 'cart') ? 1 : 0;
     $variables['content']['created']['#markup'] = date('D m/d/y - g:i a', $variables['pursuit']->created);
   }
 }
