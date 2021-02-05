@@ -495,7 +495,7 @@ function mlmta_dsf_forms_tokens($type, $tokens, array $data = array(), array $op
             $field_info = field_info_field( $field_name);
             $field_instance = field_info_instance('event', $field_name, 'basic_event'); 
             array_walk($value, function (&$item) use ($field_instance) {
-              if ($field_instance['display']['default']['settings']['format_type'] == 'custom') {
+              if (!empty($field_instance) && $field_instance['display']['default']['settings']['format_type'] == 'custom') {
                 $format = $field_instance['display']['default']['settings']['custom_date_format'];
               } else {
                 $format = 'm/d/Y';
