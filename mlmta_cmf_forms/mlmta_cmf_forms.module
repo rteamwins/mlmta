@@ -606,10 +606,10 @@ function mlmta_cmf_forms_commerce_checkout_complete($order) {
     $message = message_create('commerce_order_cmf_confirmation', array(
       'uid'=>$order_wrapper->uid->value(),
       'arguments' => array(
-        '!subject_text' => 'MLMTA Constance Murray Piano Festival',
-        '!event_text' => 'Constance Murray Piano Festival',
-        '!confirmation-text' => $notification,
-        '!generic-order-summary' => array(
+        // '!subject_text' => 'MLMTA Constance Murray Piano Festival',
+        // '!event_text' => 'Constance Murray Piano Festival',
+        // '!confirmation-text' => $notification,  // THIS ARE NOT NEEDED with this message type
+        '!cmf-order-summary' => array(
           'callback' => 'mlmta_cmf_forms_message_order_summary',
           'pass message' => TRUE,
         ),
