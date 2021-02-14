@@ -552,21 +552,137 @@ function mlmta_cmf_forms_tokens($type, $tokens, array $data = array(), array $op
 }
 
 /**
+ * Implements hook_commerce_checkout_complete().
+ * This replaces the Rules that sent the notification to the customer. This is necessary here because we can't filter by SKU anymore -
+ * rather we need to check if the order contains specific pursuit types (in this case hmta_piano, hmta_winds or hmta_mae)
+ *
+ */
+function mlmta_cmf_forms_commerce_checkout_complete($order) {
+  // Build the list of pursuit_types
+  $included_pursuit_types = array();
+  foreach(pursuit_types() as $pursuit_type) {
+    $pursuit_type_wrapper = entity_metadata_wrapper('pursuit_type', $pursuit_type);
+    $settings = $pursuit_type_wrapper->settings->value();
+    if (isset($settings['registration_form']['config_fields']['module']) && $settings['registration_form']['config_fields']['module'] == 'mlmta_cmf_forms') {
+      $included_pursuit_types[] = $pursuit_type->type;
+    }
+  }
+
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $type_flag = FALSE;
+  $teacher_emails = array();
+  $chair_emails = array();
+
+  // Collect emails from teachers in this order
+  foreach ($order_wrapper->commerce_line_items->getIterator() as $line_item_wrapper) {
+    foreach ($line_item_wrapper->field_pursuit_reference->getIterator() as $pursuit_wrapper) {
+      // These are the types of pursuits used by this event
+      if (in_array($pursuit_wrapper->getBundle(), $included_pursuit_types)) {
+        $type_flag = TRUE;
+        $event_wrapper = $pursuit_wrapper->field_event_reference;
+        foreach($pursuit_wrapper->pursuit_teacher_reference->getIterator() as $teacher_wrapper) {
+          if (!empty($teacher_wrapper->teacher_email->value())) {
+            $teacher_emails[$teacher_wrapper->teacher_email->value()] = TRUE; 
+          }
+        }
+        $chair_emails[$pursuit_wrapper->field_event_reference->field_chair_email_address->value()] = TRUE;
+      }
+    }
+  }
+
+  // Abort if there are no pursuits that point to this event
+  if (empty($event_wrapper)) {
+    return;
+  }
+  
+  $notification = $event_wrapper->field_registration_confirmation->value();
+  $notification = token_replace($notification);
+  
+  if ($type_flag) {
+    $addresses = array_keys($chair_emails);
+    $addresses[] = 'acremaschi@tenutoweb.com';
+    $addresses = array_merge($addresses, array_keys($teacher_emails));
+    $address = implode(',', $addresses);
+    $message = message_create('commerce_order_generic_order_confirmation', array(
+      'uid'=>$order_wrapper->uid->value(),
+      'arguments' => array(
+        '!subject_text' => 'MLMTA Constance Murray Piano Festival',
+        '!event_text' => 'Constance Murray Piano Festival',
+        '!confirmation-text' => $notification,
+        '!generic-order-summary' => array(
+          'callback' => 'mlmta_cmf_forms_message_order_summary',
+          'pass message' => TRUE,
+        ),
+      ),
+    ));
+    $message_wrapper = entity_metadata_wrapper('message', $message);
+    $message_wrapper->message_commerce_order = $order;
+    message_save($message);
+    if (!in_array(trim($order->mail), $addresses)) {
+      message_notify_send_message($message);      
+    }
+    message_notify_send_message($message, array('mail'=>$address));
+  }
+}
+
+/**
+ * Message callback; Show order summary
+ *
+ * @param Message $message
+ *   The Message entity.
+ *
+ * @return string
+ *   The output of the View.
+ */
+function mlmta_cmf_forms_message_order_summary(Message $message) {
+  $wrapper = entity_metadata_wrapper('message', $message);
+
+  $event_id = variable_get('tenuto_cmf_event');
+
+  $pursuit_ids = array();
+  foreach ($wrapper->message_commerce_order->commerce_line_items->getIterator() as $line_item_wrapper) {
+    // Only include pursuits that point to this event
+    foreach ($line_item_wrapper->field_pursuit_reference->getIterator() as $pursuit_wrapper) {
+      if ($pursuit_wrapper->field_event_reference->raw() == $event_id) {
+        $pursuit_ids[$pursuit_wrapper->getIdentifier()] = TRUE; 
+      }
+    }
+  }
+
+  $pursuits = pursuit_load_multiple(array_keys($pursuit_ids));
+  
+  $output = '';
+  foreach ($pursuits as $pursuit) {
+    $output_array = entity_view('pursuit', array($pursuit), 'complete');
+    $output .= '<div class="notification-email-row">'. drupal_render($output_array) . '</div>';    
+  }
+
+  // Add a table listing all charges in the order
+  $order_summary_view = views_get_view('commerce_cart_summary');
+  $order_summary_view->set_display('block_1');
+  $order_summary_view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
+  $output .= $order_summary_view->preview() . '<p>&nbsp;</p>';
+
+  $output .= '<p><strong>PLEASE NOTE: this total is for the WHOLE order. If your order included registrations in other events, you will receive a separate email with a registration summary of those students.</strong></p>';
+  return $output;
+}
+
+/**
  * Implements hook_message_presave().
  *
  * Embeds a view in the notification email for solo registrations
  */
 
-function mlmta_cmf_forms_message_presave($message) {
-  if (!empty($message->mid) || $message->type != 'commerce_order_cmf_confirmation' ) { // @todo Create message type
-    return;
-  }
+// function mlmta_cmf_forms_message_presave($message) {
+//   if (!empty($message->mid) || $message->type != 'commerce_order_cmf_confirmation' ) { // @todo Create message type
+//     return;
+//   }
 
-  $message->arguments['!cmf-order-summary'] = array(
-    'callback' => 'mlmta_cmf_forms_message_order_summary', 
-    'pass message' => TRUE,
-  );
-}
+//   $message->arguments['!cmf-order-summary'] = array(
+//     'callback' => 'mlmta_cmf_forms_message_order_summary', 
+//     'pass message' => TRUE,
+//   );
+// }
 
 /**
  * Message solo callback; Show order summary.
@@ -577,20 +693,20 @@ function mlmta_cmf_forms_message_presave($message) {
  * @return string
  *   The output of the View.
  */
-function mlmta_cmf_forms_message_order_summary(Message $message) {
-  $wrapper = entity_metadata_wrapper('message', $message);
-  $view = views_get_view('shopping_cart_complete_summary'); 
-  $view->set_display('cmf'); // @todo Create views display for CMF
-  $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
-  $view->hide_admin_links = TRUE;
+// function mlmta_cmf_forms_message_order_summary(Message $message) {
+//   $wrapper = entity_metadata_wrapper('message', $message);
+//   $view = views_get_view('shopping_cart_complete_summary'); 
+//   $view->set_display('cmf'); // @todo Create views display for CMF
+//   $view->set_arguments(array($wrapper->message_commerce_order->getIdentifier()));
+//   $view->hide_admin_links = TRUE;
 
-  // Disable SQL query rewrite so this renders properly for token.
-  // @link https://www.drupal.org/node/1895418
-  // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
-  //$view->display['recital']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
+//   // Disable SQL query rewrite so this renders properly for token.
+//   // @link https://www.drupal.org/node/1895418
+//   // This line doesn't seem to work for non-admins! I had to manually disable SQL rewrite for the views
+//   //$view->display['recital']->display_options['query']['options']['disable_sql_rewrite'] = TRUE;
 
-  return $view->preview();
-}
+//   return $view->preview();
+// }
 
 
 
