@@ -603,7 +603,7 @@ function mlmta_cmf_forms_commerce_checkout_complete($order) {
     $addresses[] = 'acremaschi@tenutoweb.com';
     $addresses = array_merge($addresses, array_keys($teacher_emails));
     $address = implode(',', $addresses);
-    $message = message_create('commerce_order_generic_order_confirmation', array(
+    $message = message_create('commerce_order_cmf_confirmation', array(
       'uid'=>$order_wrapper->uid->value(),
       'arguments' => array(
         '!subject_text' => 'MLMTA Constance Murray Piano Festival',
